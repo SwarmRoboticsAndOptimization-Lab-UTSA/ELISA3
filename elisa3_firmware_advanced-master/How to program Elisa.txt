@@ -1,0 +1,75 @@
+This documentation is a How to Program Elisa3 robots from a Windows 10 computer
+for more information on how to do so in other systems refer to
+
+https://www.gctronic.com/doc/index.php/Elisa-3#Programming
+
+Programs required:
+
+    - AVR8 Burn-O-Mat v2
+     Link:    https://projects.gctronic.com/elisa3/programming/AVR-Burn-O-Mat-Windows7.zip
+     This works on windows 10 has been tested
+
+    - AVR Studio 4 Project
+     Link:   https://projects.gctronic.com/elisa3/AvrStudio4Setup.exe
+     This works on windows 10 has been tested
+
+    After downloading, go to the github containing the Basic or Advanced Demo
+    https://github.com/gctronic/elisa3_firmware_basic
+    https://github.com/gctronic/elisa3_firmware_advanced.git
+
+    each has unique dependencies that can be used as a start code to modify the elisa3.
+
+Programming the Elisa3:
+
+    When downloaded, Open AVR Studio 4, then open a Project look into the demo folder previously downloaded and look for the Elisa3-avr-studio.aps, this is the file that will open the
+    project for you to work on,
+
+    Multiple files will be opened, you can edit them and change values, from this program you will be able to compile the HEX file required for deploying on the elisa3.
+
+    WinAVR needs to be installed on the system for AVR Studio to work. 
+
+    https://tinusaur.com/guides/winavr-setup-guide/
+
+    Follow this guide to get the links and step by step of how to do so
+
+    Make sure you know where winAVR will be installed since you will need it.
+
+    After that is installed, go to AVR Studio, click on the top left corner into Project --> Configuration Options
+    This will open a small window, on the bottom left will be a small bottom down arrow, click it, then click on Custom Options
+    In the external tools block, unselect Use AVR Toolchain
+    then on the avr-gcc, click on the button to the right of it, and search for the path in your winAVR installation
+        - WinAVR-20100110\bin\avr-gcc.exe
+    then for make, click on the button to the right of it, and search for the path in your winAVR installation
+        - WinAVR-20100110\utils\bin\make.exe
+
+    After those steps are followed, you will be able to build your HEX file properly.
+
+    After making changes to your code (This can be done directly on AVR Studio or on VScode) on the top left corner of AVR Studio click on Build --> Build
+    or press F7 for shortcut.
+
+    This will compile your code, if terminal displays build complete, then go to the location of the code and enter the folder named "default", in here you will find 
+    Elisa3-avr-studio.hex this is the file you will need for following steps
+
+
+Deploying on Elisa3:
+    Connect and turn on the elisa3 to the computer using the USB cable
+    press windows key and search for device manager
+    The connected robot should appear as one item in the Ports(COM & LPT)
+    Check what is the COM number of the connected robot (Each robot connected should have a different number)
+    After you have the hex file available, open AVR8 Burn-O-Mat program
+    click on Settings --> AVRDUDE on the top left corner. 
+    In this window, change the port, select the com# that you found on the devices plugged to the computer
+    If the com number is higher than the options available, just write on the box com + number "ex:com23"
+    Click on Ok
+
+    Then in flash click on file, search for your file on the "default" folder of your code then select the hex file named Elisa3-avr-studio.hex
+    After this just click on the write button that is right below Flash.
+    The program should start writing to the robot.
+
+    If it fails, make sure com port is correct, make sure robot is connected and turned on
+    Disconnecting and connecting usually works to solve most of the issues
+
+    After flashing the program will show a signal that it has been flashed successfully. If modifications are made and required to re flash
+    robot must be disconnected and connected again.
+
+    
