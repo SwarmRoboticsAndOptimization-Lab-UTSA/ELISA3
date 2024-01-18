@@ -7,9 +7,11 @@ import subprocess
 from utils import *
 
 commands = [
-    "sudo v4l2-ctl --device=/dev/video0 --set-ctrl=exposure_time_absolute=120",
-    "sudo v4l2-ctl --device=/dev/video0 --set-ctrl=contrast=25",
-    "sudo v4l2-ctl --device=/dev/video0 --set-ctrl=brightness=0"
+    "v4l2-ctl --set-ctrl=auto_exposure=1",
+    "v4l2-ctl --device=/dev/video0 --set-ctrl=exposure_time_absolute=120",
+    "v4l2-ctl --device=/dev/video0 --set-ctrl=contrast=25",
+    "v4l2-ctl --device=/dev/video0 --set-ctrl=brightness=0"
+    
 ]
 
 for command in commands:
@@ -37,7 +39,7 @@ taken_locations = {}
 desired_location = [[282,96],[414,96],[546,96],[813,96],[480,120],[480,205],[480,290],[480,375],[480,548]]
 display_locations = desired_location.copy()
 
-robotAddr = [4124]
+robotAddr = [3890]
 elisa = elisa3.Elisa3(robotAddr)
 elisa.start()
 
@@ -67,6 +69,7 @@ while True:
         corner_02 = (int(corners[1][0]), int(corners[1][1]))
         # corner_03 = (int(corners[2][0]), int(corners[2][1]))
         # corner_04 = (int(corners[3][0]), int(corners[3][1]))
+
         min_distance = float('inf')
 
         mid = midpoint(corner_01,corner_02)
@@ -78,23 +81,23 @@ while True:
         distances = [calculate_distance(mid[0],mid[1],des_loc[0],des_loc[1]) for des_loc in desired_location]
         if distances:
             min_distance = distances.index(min(distances)) #Get the index of the smallest distance.
-            taken_locations[str(tag_id)] = desired_location[min_distance] #Use index of the smallest distance to update robot desired location
+            taken_locations[str(3890)] = desired_location[min_distance] #Use index of the smallest distance to update robot desired location
             desired_location.pop(min_distance)
         
-        dist = calculate_distance(mid[0],mid[1],taken_locations[str(tag_id)][0],taken_locations[str(tag_id)][1])
-        desired_heading = calculate_heading(center,taken_locations[str(tag_id)])
-        robot_dic[str(tag_id)] = [heading,desired_heading, dist]
+        dist = calculate_distance(mid[0],mid[1],taken_locations[str(3890)][0],taken_locations[str(3890)][1])
+        desired_heading = calculate_heading(center,taken_locations[str(3890)])
+        robot_dic[str(3890)] = [heading,desired_heading, dist]# Change to tag ID when IDS are printed
 
-        print(robot_dic)
         elisa.setLeftSpeed(robotAddr[0], 0)
         elisa.setRightSpeed(robotAddr[0], 0)
 
-        # if robot_dic:
-        #     c_ind = 0
-        #     # print(robot_dic)
-        #     for id in robotAddr:
-        #         rotation_direction = calculate_rotation_direction(robot_dic[id][0],robot_dic[id][1])
-
+        if robot_dic:
+            print(robot_dic)
+            c_ind = 0
+            for id in robotAddr:
+                id = str(id)
+                rotation_direction = calculate_rotation_direction(robot_dic[id][0],robot_dic[id][1])
+                print(rotation_direction)
         #         if rotation_direction == "no rotation":
         #             des_speed_left = 100
         #             des_speed_right = 100
