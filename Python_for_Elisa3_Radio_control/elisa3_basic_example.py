@@ -8,6 +8,7 @@ elisa.start()
 counter = 0
 
 while 1:
+
     if(counter == 5):
         for addr in robotAddr:
             elisa.setRed(addr, 10)
