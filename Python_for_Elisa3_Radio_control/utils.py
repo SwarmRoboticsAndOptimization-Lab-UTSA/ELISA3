@@ -172,7 +172,9 @@ def calculate_heading(point1, point2): #Function to calculate the heading based 
 # print(calculate_heading(point1, point2))  # Should be roughly 45.0
 
 def calculate_rotation_direction(current_heading, desired_heading, tolerance=20):
-    # Calculate the angle difference
+    """
+    Calculate the angle difference
+    """
     angle_difference = desired_heading - current_heading
 
     # Normalize the angle difference to -180 to 180 degrees
@@ -197,7 +199,9 @@ def calculate_rotation_direction(current_heading, desired_heading, tolerance=20)
 
 
 def calculate_distance(x1, y1, x2, y2):
-    # Calculate the squared differences in x and y coordinates
+    """
+    Calculate the squared differences in x and y coordinates
+    """
     x_diff_squared = (x2 - x1) ** 2
     y_diff_squared = (y2 - y1) ** 2
     
@@ -217,3 +221,31 @@ def calculate_distance(x1, y1, x2, y2):
 def click_event(event, x, y, flags, param):
     if event == cv2.EVENT_LBUTTONDOWN:
         print(f'({x}, {y})')  # prints the (x,y) coordinates on left button down
+
+
+
+def find_and_remove_closest_point(points, target_point):
+    """
+    Finds and removes the closest point to the target_point from a list of points.
+
+    Parameters:
+    - points: A list of (x, y) tuples.
+    - target_point: A tuple containing the (x, y) coordinates of the target point.
+
+    Returns:
+    - A tuple containing two elements:
+        1. The modified list with the closest point removed.
+        2. The closest point as a tuple.
+    """
+    # Calculate Euclidean distance to each point and store it along with the index
+    distances = [(math.sqrt((x - target_point[0]) ** 2 + (y - target_point[1]) ** 2), i)
+                 for i, (x, y) in enumerate(points)]
+    
+    # Find the closest point (minimum distance) and its index
+    _, closest_point_index = min(distances, key=lambda x: x[0])
+    
+    # Extract the closest point
+    closest_point = points.pop(closest_point_index)
+    
+    # Return the modified list and the closest point
+    return points, closest_point

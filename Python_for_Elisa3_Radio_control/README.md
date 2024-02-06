@@ -6,3 +6,9 @@ Requirements:
 * pip3 install libusb_package
 * pip3 install pyusb
 
+
+# TODO
+
+* UTSA Formation using Elisa 3 and qr detection.
+* Formation based on input image
+* Formation based on multiple images
