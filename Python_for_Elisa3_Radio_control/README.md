@@ -7,6 +7,9 @@ Requirements:
 * pip3 install pyusb
 
 
+elisa3_example_UsingQR_det.py is used for moving the ELISA3 robots to a desired location using the pixel values
+Currently the maximum number of robots has been 10
+
 # TODO
 
 * UTSA Formation using Elisa 3 and qr detection.

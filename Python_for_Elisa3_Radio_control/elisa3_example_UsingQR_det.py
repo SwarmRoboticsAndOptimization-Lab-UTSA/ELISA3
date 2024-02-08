@@ -32,11 +32,49 @@ at_detector = Detector(
 
 cap = cv2.VideoCapture(0)
 processed_tags = set()  # Set to keep track of processed tags
-desired_location = [(282,96),(414,960),(546,96),(813,96),(480,120),(480,205),(480,290),(480,375),(480,548)] #Goal Locations
+desired_location_u = [
+    (181, 104), # Top left
+    (181, 230), # Mid left
+    (181, 370), # Mid2 left
+    (181, 430), # Bottom left
+    (252, 430), # Bottom, starting to move right
+    (352, 430), # Bottom, further right
+    (425, 430), # Bottom, even further right
+    (552, 370), # Bottom right
+    (552, 230), # Mid right
+    (552, 104), # Top right
+]
+
+desired_location_t = [
+    (181,104), # Top left
+    (252,104), # Mid Top left
+    (352,104), # Mid
+    (425,104), # Mid Top Right
+    (552,104), # Top right
+    (352,170), # Mid 2
+    (352,230), # Mid 3
+    (352,300), # Mid 4
+    (352,370), # Mid 5
+    (352,430)  # Mid Bottom
+]
+
+desired_location = [
+    (456, 104), # Top right
+    (350, 46), # Top mid
+    (246, 104),# Top left
+    (246, 160), # Mid top
+    (310, 225), # Mid top 2 
+    (390, 258), # Mid bottom 2
+    (456, 365), # Mid bottom
+    (390, 440), # Bottom right
+    (300, 440), # Bottom mid
+    (246, 440) #Bottom left
+]
+
 display_locations = desired_location.copy()
 robot_dict = {}
  
-robotAddr = [3948]
+robotAddr = [3948,4060,4021,4469,3988,4104,4050,4096,4101,4083]
 elisa = elisa3.Elisa3(robotAddr)
 elisa.start()
 
@@ -74,7 +112,7 @@ while True:
 
         if tag_identifier not in processed_tags:
             # Assuming desired_location is defined and find_and_remove_closest_point as previously described
-            modified_list, closest_point = find_and_remove_closest_point(list(desired_location), center)
+            desired_location, closest_point = find_and_remove_closest_point(list(desired_location), center)
             processed_tags.add(tag_identifier)  # Mark the tag as processed
             robot_dict[str(tag.tag_id)] = closest_point #Add robot and its desired location
 
