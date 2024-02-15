@@ -5,7 +5,7 @@ import subprocess
 commands = [
     "v4l2-ctl --set-ctrl=auto_exposure=1",
     "v4l2-ctl --device=/dev/video0 --set-ctrl=exposure_time_absolute=120",
-    "v4l2-ctl --device=/dev/video0 --set-ctrl=contrast=25",
+    "v4l2-ctl --device=/dev/video0 --set-ctrl=contrast=0",
     "v4l2-ctl --device=/dev/video0 --set-ctrl=brightness=0"
     
 ]

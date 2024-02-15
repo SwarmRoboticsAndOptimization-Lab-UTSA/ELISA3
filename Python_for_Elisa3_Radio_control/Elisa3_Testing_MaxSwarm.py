@@ -1,19 +1,22 @@
 import elisa3
 import time
 
-robotAddr = [4050, 4096, 4469, 4021, 4060,
-             4104, 4101, 4083, 3991, 3988,
-             3948, 4061, 4111, 4086, 4105,
-             4472, 4471, 4054, 4095, 4090,
-             4098, 4114, 4128, 4123, 4034,
-             4001, 4005, 4028, 4035, 4068,
-             ]
+robotAddr = [
+3890,4471,4111,4098,4068,4054,4114,
+4472,4001,4086,4128,4035,4123,4105,
+4028,4005,4034,3846,4010,4049,4031,
+4095,4090,4061,3918,3869,3828,3868,
+3904,3901,3981,4124,3829,4020,4019,
+4047,3887,3926,3823,3948,4060,4021,
+4469,3988,4104,4050,4096,4101,4083
+]
+print('Total robots: ',len(robotAddr))
 elisa = elisa3.Elisa3(robotAddr)
 elisa.start()
 
 counter = 0
 turn_duration = 2  # This needs calibration, the time required to turn 180 degrees
-speed = 10  # Speed for moving forward
+speed = 0  # Speed for moving forward
 
 while True:
     for addr in robotAddr:
