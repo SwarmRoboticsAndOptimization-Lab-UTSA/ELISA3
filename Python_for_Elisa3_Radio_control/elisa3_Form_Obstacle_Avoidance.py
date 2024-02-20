@@ -7,9 +7,14 @@ import subprocess
 from utils import *
 
 commands = [
-    "v4l2-ctl --set-ctrl=auto_exposure=1",
-    "v4l2-ctl --device=/dev/video0 --set-ctrl=exposure_time_absolute=120",
-    "v4l2-ctl --device=/dev/video0 --set-ctrl=contrast=25",
+    # "v4l2-ctl --set-ctrl=auto_exposure=1", #Use this config for lights on
+    # "v4l2-ctl --device=/dev/video0 --set-ctrl=exposure_time_absolute=120",
+    # "v4l2-ctl --device=/dev/video0 --set-ctrl=contrast=25",
+    # "v4l2-ctl --device=/dev/video0 --set-ctrl=brightness=0"
+
+    "v4l2-ctl --set-ctrl=auto_exposure=1", #Use this config for lights off
+    "v4l2-ctl --device=/dev/video0 --set-ctrl=exposure_time_absolute=2047",
+    "v4l2-ctl --device=/dev/video0 --set-ctrl=contrast=20",
     "v4l2-ctl --device=/dev/video0 --set-ctrl=brightness=0"
     
 ]
@@ -43,6 +48,8 @@ elisa = elisa3.Elisa3(robotAddr)
 elisa.start()
 
 counter = 0
+speed = 0 #Speed of robots
+
 
 while True:
     ret, frame = cap.read()
@@ -104,14 +111,14 @@ while True:
 
             # Adjust robot movement based on the net force
             if rotation_direction == "no rotation":
-                elisa.setLeftSpeed(tag.tag_id, 5)
-                elisa.setRightSpeed(tag.tag_id, 5)
+                elisa.setLeftSpeed(tag.tag_id, speed)
+                elisa.setRightSpeed(tag.tag_id, speed)
             elif rotation_direction == "left":
-                elisa.setLeftSpeed(tag.tag_id, -5)
-                elisa.setRightSpeed(tag.tag_id, 5)
+                elisa.setLeftSpeed(tag.tag_id, -speed)
+                elisa.setRightSpeed(tag.tag_id, speed)
             elif rotation_direction == "right":
-                elisa.setLeftSpeed(tag.tag_id, 5)
-                elisa.setRightSpeed(tag.tag_id, -5)
+                elisa.setLeftSpeed(tag.tag_id, speed)
+                elisa.setRightSpeed(tag.tag_id, -speed)
 
             # Stop the robot if it is within a close distance to the goal
             distance_to_goal = calculate_distance(mid[0], mid[1], goal_position[0], goal_position[1])
@@ -139,7 +146,7 @@ while True:
 
 
     for i in display_locations:
-        cv2.circle(debug_image, i, 10, (0,255,255), -1) #Draw circle goal location
+        cv2.circle(debug_image, i, 4, (0,255,255), -1) #Draw circle goal location
     
     
     cv2.imshow("IMG", debug_image)

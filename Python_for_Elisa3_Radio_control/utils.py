@@ -290,14 +290,14 @@ def get_formations_list():
   formations_list = [
     [ #U Formation
     (181, 104), # Top left
-    (181, 230), # Mid left
-    (181, 370), # Mid2 left
+    (181, 213), # Mid left
+    (181, 321), # Mid2 left
     (181, 430), # Bottom left
-    (252, 430), # Bottom, starting to move right
-    (352, 430), # Bottom, further right
-    (425, 430), # Bottom, even further right
-    (552, 370), # Bottom right
-    (552, 230), # Mid right
+    (305, 430), # Bottom, starting to move right
+    (429, 430), # Bottom, further right
+    (552, 430), # Bottom, even further right
+    (552, 321), # Bottom right
+    (552, 213), # Mid right
     (552, 104), # Top right
     ],
     [ #T Formation
@@ -323,7 +323,18 @@ def get_formations_list():
     (390, 440), # Bottom right
     (300, 440), # Bottom mid
     (246, 440) #Bottom left
+    ],
+    [ #A Formation
+    (366,104),
+    (274,213),
+    (458,213),
+    (181,321),
+    (274,321),
+    (367,321),
+    (460,321),
+    (552,321),
+    (181,440),
+    (552,440),
     ]
-    #TODO A FORMATION
   ]
   return formations_list
