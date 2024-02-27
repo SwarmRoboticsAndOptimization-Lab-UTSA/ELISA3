@@ -7,15 +7,17 @@ import subprocess
 from utils import *
 
 commands = [
-    # "v4l2-ctl --set-ctrl=auto_exposure=1", #Use this config for lights on
-    # "v4l2-ctl --device=/dev/video0 --set-ctrl=exposure_time_absolute=120",
-    # "v4l2-ctl --device=/dev/video0 --set-ctrl=contrast=25",
-    # "v4l2-ctl --device=/dev/video0 --set-ctrl=brightness=0"
+    "v4l2-ctl --set-ctrl=auto_exposure=1", #Use this config for lights on
+    "v4l2-ctl --device=/dev/video0 --set-ctrl=exposure_time_absolute=120",
+    "v4l2-ctl --device=/dev/video0 --set-ctrl=contrast=57",
+    "v4l2-ctl --device=/dev/video0 --set-ctrl=brightness=24"
+    "v4l2-ctl --device=/dev/video0 --set-ctrl=zoom_absolute=135"
+    "v4l2-ctl --device=/dev/video0 --set-ctrl=focus_absolute=0"
 
-    "v4l2-ctl --set-ctrl=auto_exposure=1", #Use this config for lights off
-    "v4l2-ctl --device=/dev/video0 --set-ctrl=exposure_time_absolute=2047",
-    "v4l2-ctl --device=/dev/video0 --set-ctrl=contrast=20",
-    "v4l2-ctl --device=/dev/video0 --set-ctrl=brightness=0"
+    # "v4l2-ctl --set-ctrl=auto_exposure=1", #Use this config for lights off
+    # "v4l2-ctl --device=/dev/video0 --set-ctrl=exposure_time_absolute=2047",
+    # "v4l2-ctl --device=/dev/video0 --set-ctrl=contrast=20",
+    # "v4l2-ctl --device=/dev/video0 --set-ctrl=brightness=0"
     
 ]
 
@@ -42,7 +44,7 @@ formations = get_formations_list()
 current_formation = formations[formation_id]
 display_locations = current_formation.copy()
 robot_dict = {}
-robotAddr = [3948,4060,4021,4469,3988,4104,4050,4096,4101,4083]
+robotAddr = [3948,4060,4021,4469,3988,3846,4050,4096,4101,4083]
 robot_status_dict = {robot_id: False for robot_id in robotAddr} #Status of location of the robots
 elisa = elisa3.Elisa3(robotAddr)
 elisa.start()
@@ -65,6 +67,7 @@ while True:
         tag_size=None,
     )
 
+
     for tag in tags:
         tag_identifier = (tag.tag_family, tag.tag_id)  # Unique identifier for each tag
         #tag_family = tag.tag_family
@@ -79,7 +82,6 @@ while True:
         mid = midpoint(corner_01,corner_02)
         cv2.line(debug_image, (center[0], center[1]),(mid[0], mid[1]), (255, 255, 0), 2)
         heading = calculate_heading(center,mid)
-
 
         if tag_identifier not in processed_tags:
             # Assuming desired_location is defined and find_and_remove_closest_point as previously described
@@ -109,24 +111,30 @@ while True:
             net_heading = calculate_heading(center, (center[0] + net_force[0], center[1] + net_force[1]))
             rotation_direction = calculate_rotation_direction(heading, net_heading)
 
-            # Adjust robot movement based on the net force
-            if rotation_direction == "no rotation":
-                elisa.setLeftSpeed(tag.tag_id, speed)
-                elisa.setRightSpeed(tag.tag_id, speed)
-            elif rotation_direction == "left":
-                elisa.setLeftSpeed(tag.tag_id, -speed)
-                elisa.setRightSpeed(tag.tag_id, speed)
-            elif rotation_direction == "right":
-                elisa.setLeftSpeed(tag.tag_id, speed)
-                elisa.setRightSpeed(tag.tag_id, -speed)
+            prox = elisa.getAllProximity(tag.tag_id)
+            if prox is not None:
+                if prox[0] > 40:
+                    elisa.setLeftSpeed(tag.tag_id, -3)
+                    elisa.setRightSpeed(tag.tag_id, -3)
+                else:
+                    # Adjust robot movement based on the net force
+                    if rotation_direction == "no rotation":
+                        elisa.setLeftSpeed(tag.tag_id, speed)
+                        elisa.setRightSpeed(tag.tag_id, speed)
+                    elif rotation_direction == "left":
+                        elisa.setLeftSpeed(tag.tag_id, -speed)
+                        elisa.setRightSpeed(tag.tag_id, speed)
+                    elif rotation_direction == "right":
+                        elisa.setLeftSpeed(tag.tag_id, speed)
+                        elisa.setRightSpeed(tag.tag_id, -speed)
 
-            # Stop the robot if it is within a close distance to the goal
-            distance_to_goal = calculate_distance(mid[0], mid[1], goal_position[0], goal_position[1])
-            if distance_to_goal <= 5:
-                elisa.setLeftSpeed(tag.tag_id, 0)
-                elisa.setRightSpeed(tag.tag_id, 0)
-                robot_status_dict[tag.tag_id] = True
-                #print(robot_status_dict[tag.tag_id])
+                # Stop the robot if it is within a close distance to the goal
+                distance_to_goal = calculate_distance(mid[0], mid[1], goal_position[0], goal_position[1])
+                if distance_to_goal <= 5:
+                    elisa.setLeftSpeed(tag.tag_id, 0)
+                    elisa.setRightSpeed(tag.tag_id, 0)
+                    robot_status_dict[tag.tag_id] = True
+                    #print(robot_status_dict[tag.tag_id])
 
     # Place the formation switch check after processing all tags
     all_arrived = all(robot_status_dict.values())
@@ -143,8 +151,6 @@ while True:
             quit()
             break  # Or any other action you'd like to perform after completing all formations
 
-
-
     for i in display_locations:
         cv2.circle(debug_image, i, 4, (0,255,255), -1) #Draw circle goal location
     
@@ -153,8 +159,6 @@ while True:
             
     key = cv2.waitKey(1)
     if key & 0xFF == ord('q'):
-        des_speed_right = 0
-        des_speed_left = 0 #500 FORWARD 400 TURN LEFT WHILE MOVING FORWARD
         cap.release()
         cv2.destroyAllWindows()
         break

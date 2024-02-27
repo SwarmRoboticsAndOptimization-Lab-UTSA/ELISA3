@@ -1,7 +1,7 @@
 import cv2
 from pupil_apriltags import Detector
 import subprocess
-from utils import midpoint
+from utils import midpoint,get_formations_list
 
 def set_camera_setting(setting, value):
     try:
@@ -20,6 +20,14 @@ def on_trackbar_change_contrast(value):
 def on_trackbar_change_brightness(value):
     set_camera_setting("brightness", value)
 
+def on_trackbar_change_zoom(value):
+    set_camera_setting("zoom_absolute", value)
+
+def toggle_auto_focus(value):
+    # Convert the incoming value to a boolean or use directly if already boolean
+    set_camera_setting("focus_absolute", value)
+
+
 at_detector = Detector(
         families="tagCustom48h12",
         nthreads=1,
@@ -35,6 +43,8 @@ cv2.namedWindow('Frame')
 cv2.createTrackbar('Exposure', 'Frame', 0, 2047, on_trackbar_change_exposure)
 cv2.createTrackbar('Contrast', 'Frame', 0, 255, on_trackbar_change_contrast)
 cv2.createTrackbar('Brightness', 'Frame', 0, 255, on_trackbar_change_brightness)
+cv2.createTrackbar('Zoom', 'Frame', 100, 500, on_trackbar_change_zoom)  # Adjust the range according to your camera
+cv2.createTrackbar('Auto Focus', 'Frame', 0, 250, toggle_auto_focus)
 
 cap = cv2.VideoCapture(0)
 while True:
@@ -48,6 +58,11 @@ while True:
         camera_params=None,
         tag_size=None,
     )    
+
+
+    display_locations = get_formations_list()
+    # for i in display_locations[3]:
+    #     cv2.circle(frame, i, 4, (0,255,255), -1) #Draw circle goal location
 
     for tag in tags:
         center = (int(tag.center[0]), int(tag.center[1]))

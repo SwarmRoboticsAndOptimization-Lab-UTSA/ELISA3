@@ -284,57 +284,78 @@ def calculate_repulsive_force(current_position, obstacle_position, sensor_range,
         return repulsive_force
     else:
         return (0, 0)
+    
+def generate_letter_points(letter, num_points):
 
+    points = []
+    
+    # Coordinate bounds
+    top_left = (150, 150)
+    bottom_left = (150, 450) 
+    bottom_right = (450, 450)
+    top_right = (450, 150)
+    
+    if letter == 'T':
+            
+        # Vertical line points
+        for y in range(top_left[1], bottom_left[1], int((bottom_left[1] - top_left[1]) / (num_points/2))):
+            points.append((225, y))
+        
+        # Horizontal line points
+        for x in range(top_left[0], top_right[0], int((top_right[0] - top_left[0]) / (num_points/2))):
+            points.append((x, 300))
+
+    return points
 
 def get_formations_list():
   formations_list = [
     [ #U Formation
-    (181, 104), # Top left
-    (181, 213), # Mid left
-    (181, 321), # Mid2 left
-    (181, 430), # Bottom left
-    (305, 430), # Bottom, starting to move right
-    (429, 430), # Bottom, further right
-    (552, 430), # Bottom, even further right
-    (552, 321), # Bottom right
-    (552, 213), # Mid right
-    (552, 104), # Top right
+    (150, 150), # Top left
+    (150, 250), # Mid left
+    (150, 350), # Mid2 left
+    (150, 450), # Bottom left
+    (250, 450), # Bottom, starting to move right
+    (350, 450), # Bottom, further right
+    (450, 450), # Bottom, even further right
+    (450, 350), # Bottom right
+    (450, 250), # Mid right
+    (450, 150), # Top right
     ],
     [ #T Formation
-    (181,104), # Top left
-    (252,104), # Mid Top left
-    (352,104), # Mid
-    (425,104), # Mid Top Right
-    (552,104), # Top right
-    (352,170), # Mid 2
-    (352,230), # Mid 3
-    (352,300), # Mid 4
-    (352,370), # Mid 5
-    (352,430)  # Mid Bottom
+    (150,150), # Top left 1
+    (210,150), # Top left 2
+    (270,150), # Mid 1
+    (330,150), # Mid 2
+    (390,150), # Top right 1
+    (450,150), # Top right 2
+    (300,225), # Mid 3
+    (300,300), # Mid 4
+    (300,375), # Mid 5
+    (300,450)  # Mid Bottom
     ],
     [ #S Formation
-    (456, 104), # Top right
-    (350, 46), # Top mid
-    (246, 104),# Top left
-    (246, 160), # Mid top
-    (310, 225), # Mid top 2 
-    (390, 258), # Mid bottom 2
-    (456, 365), # Mid bottom
-    (390, 440), # Bottom right
-    (300, 440), # Bottom mid
-    (246, 440) #Bottom left
+    (300, 150), # Top
+    (225, 200), # 1 second row
+    (375, 200),# 2 second row
+    (225, 250), # 1 third row
+    (263, 300), #  1 fourth row
+    (337, 350), # 1 fifth row
+    (375, 400), #  1 sixt row
+    (337, 450), # 1 last row
+    (263, 450), # 2 last row
+    (225, 450) #  3 last row
     ],
     [ #A Formation
-    (366,104),
-    (274,213),
-    (458,213),
-    (181,321),
-    (274,321),
-    (367,321),
-    (460,321),
-    (552,321),
-    (181,440),
-    (552,440),
+    (300,150),
+    (225,213),
+    (375,213),
+    (150,321),
+    (225,321),
+    (300,321),
+    (375,321),
+    (450,321),
+    (150,440),
+    (450,440),
     ]
   ]
   return formations_list
