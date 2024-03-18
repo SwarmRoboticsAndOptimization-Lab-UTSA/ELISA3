@@ -9,9 +9,9 @@ from utils import *
 
 try:
     subprocess.check_call("v4l2-ctl --set-ctrl=auto_exposure=1", shell=True)
-    subprocess.check_call("v4l2-ctl --device=/dev/video0 --set-ctrl=exposure_time_absolute=34", shell=True)
-    subprocess.check_call("v4l2-ctl --device=/dev/video0 --set-ctrl=contrast=15", shell=True)
-    subprocess.check_call("v4l2-ctl --device=/dev/video0 --set-ctrl=brightness=39", shell=True)
+    subprocess.check_call("v4l2-ctl --device=/dev/video0 --set-ctrl=exposure_time_absolute=100", shell=True)
+    subprocess.check_call("v4l2-ctl --device=/dev/video0 --set-ctrl=contrast=70", shell=True)
+    subprocess.check_call("v4l2-ctl --device=/dev/video0 --set-ctrl=brightness=40", shell=True)
     subprocess.check_call("v4l2-ctl --device=/dev/video0 --set-ctrl=zoom_absolute=148", shell=True)
     subprocess.check_call("v4l2-ctl --device=/dev/video0 --set-ctrl=focus_automatic_continuous=0", shell=True)
     subprocess.check_call("v4l2-ctl --device=/dev/video0 --set-ctrl=focus_absolute=0", shell=True)
