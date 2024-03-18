@@ -7,6 +7,10 @@ def set_camera_setting(setting, value):
     try:
         command = f"v4l2-ctl --device=/dev/video0 --set-ctrl={setting}={value}"
         subprocess.check_call(command, shell=True)
+        subprocess.check_call("v4l2-ctl --set-ctrl=auto_exposure=1", shell=True)
+        subprocess.check_call("v4l2-ctl --set-ctrl=focus_absolute=1", shell=True)
+        
+
     except subprocess.CalledProcessError:
         print(f"Error executing the command: {command}")
 

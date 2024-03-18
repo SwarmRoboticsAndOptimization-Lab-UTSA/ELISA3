@@ -284,28 +284,6 @@ def calculate_repulsive_force(current_position, obstacle_position, sensor_range,
         return repulsive_force
     else:
         return (0, 0)
-    
-def generate_letter_points(letter, num_points):
-
-    points = []
-    
-    # Coordinate bounds
-    top_left = (150, 150)
-    bottom_left = (150, 450) 
-    bottom_right = (450, 450)
-    top_right = (450, 150)
-    
-    if letter == 'T':
-            
-        # Vertical line points
-        for y in range(top_left[1], bottom_left[1], int((bottom_left[1] - top_left[1]) / (num_points/2))):
-            points.append((225, y))
-        
-        # Horizontal line points
-        for x in range(top_left[0], top_right[0], int((top_right[0] - top_left[0]) / (num_points/2))):
-            points.append((x, 300))
-
-    return points
 
 def get_formations_list():
   formations_list = [

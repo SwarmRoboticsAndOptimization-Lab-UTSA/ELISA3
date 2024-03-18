@@ -6,26 +6,18 @@ import copy
 import subprocess
 from utils import *
 
-commands = [
-    "v4l2-ctl --set-ctrl=auto_exposure=1", #Use this config for lights on
-    "v4l2-ctl --device=/dev/video0 --set-ctrl=exposure_time_absolute=120",
-    "v4l2-ctl --device=/dev/video0 --set-ctrl=contrast=57",
-    "v4l2-ctl --device=/dev/video0 --set-ctrl=brightness=24"
-    "v4l2-ctl --device=/dev/video0 --set-ctrl=zoom_absolute=135"
-    "v4l2-ctl --device=/dev/video0 --set-ctrl=focus_absolute=0"
 
-    # "v4l2-ctl --set-ctrl=auto_exposure=1", #Use this config for lights off
-    # "v4l2-ctl --device=/dev/video0 --set-ctrl=exposure_time_absolute=2047",
-    # "v4l2-ctl --device=/dev/video0 --set-ctrl=contrast=20",
-    # "v4l2-ctl --device=/dev/video0 --set-ctrl=brightness=0"
+try:
+    subprocess.check_call("v4l2-ctl --set-ctrl=auto_exposure=1", shell=True)
+    subprocess.check_call("v4l2-ctl --device=/dev/video0 --set-ctrl=exposure_time_absolute=34", shell=True)
+    subprocess.check_call("v4l2-ctl --device=/dev/video0 --set-ctrl=contrast=15", shell=True)
+    subprocess.check_call("v4l2-ctl --device=/dev/video0 --set-ctrl=brightness=39", shell=True)
+    subprocess.check_call("v4l2-ctl --device=/dev/video0 --set-ctrl=zoom_absolute=148", shell=True)
+    subprocess.check_call("v4l2-ctl --device=/dev/video0 --set-ctrl=focus_automatic_continuous=0", shell=True)
+    subprocess.check_call("v4l2-ctl --device=/dev/video0 --set-ctrl=focus_absolute=0", shell=True)
     
-]
-
-for command in commands:
-    try:
-        subprocess.check_call(command, shell=True)
-    except subprocess.CalledProcessError:
-        print(f"Error executing the command: {command}")
+except subprocess.CalledProcessError:
+    print(f"Error executing the command:")
 
 at_detector = Detector(
         families="tagCustom48h12",
