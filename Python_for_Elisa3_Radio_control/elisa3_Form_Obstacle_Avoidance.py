@@ -9,10 +9,10 @@ from utils import *
 
 try:
     subprocess.check_call("v4l2-ctl --set-ctrl=auto_exposure=1", shell=True)
-    subprocess.check_call("v4l2-ctl --device=/dev/video0 --set-ctrl=exposure_time_absolute=100", shell=True)
+    subprocess.check_call("v4l2-ctl --device=/dev/video0 --set-ctrl=exposure_time_absolute=50", shell=True)
     subprocess.check_call("v4l2-ctl --device=/dev/video0 --set-ctrl=contrast=70", shell=True)
     subprocess.check_call("v4l2-ctl --device=/dev/video0 --set-ctrl=brightness=40", shell=True)
-    subprocess.check_call("v4l2-ctl --device=/dev/video0 --set-ctrl=zoom_absolute=148", shell=True)
+    subprocess.check_call("v4l2-ctl --device=/dev/video0 --set-ctrl=zoom_absolute=100", shell=True)
     subprocess.check_call("v4l2-ctl --device=/dev/video0 --set-ctrl=focus_automatic_continuous=0", shell=True)
     subprocess.check_call("v4l2-ctl --device=/dev/video0 --set-ctrl=focus_absolute=0", shell=True)
     
@@ -36,14 +36,12 @@ formations = get_formations_list()
 current_formation = formations[formation_id]
 display_locations = current_formation.copy()
 robot_dict = {}
-robotAddr = [3948,4060,4021,4469,3988,3846,4050,4096,4101,4083]
+robotAddr = [3948,4060,4021,4469,3988,4104,4050,4096,4101,4083]
 robot_status_dict = {robot_id: False for robot_id in robotAddr} #Status of location of the robots
 elisa = elisa3.Elisa3(robotAddr)
 elisa.start()
 
-counter = 0
-speed = 0 #Speed of robots
-
+speed = 5 #Speed of robots
 
 while True:
     ret, frame = cap.read()
@@ -58,7 +56,6 @@ while True:
         camera_params=None,
         tag_size=None,
     )
-
 
     for tag in tags:
         tag_identifier = (tag.tag_family, tag.tag_id)  # Unique identifier for each tag
@@ -88,13 +85,13 @@ while True:
         for other_tag in tags:
             if tag.tag_id != other_tag.tag_id:
                 other_center = (int(other_tag.center[0]), int(other_tag.center[1]))
-                obstacle_repulsion = calculate_repulsive_force(center, other_center, sensor_range=50, strength=2.0)
+                obstacle_repulsion = calculate_repulsive_force(center, other_center, sensor_range=50, strength=2.5)
                 repulsive_force = (repulsive_force[0] + obstacle_repulsion[0], repulsive_force[1] + obstacle_repulsion[1])
 
         # Calculate attractive force towards the goal
         if str(tag.tag_id) in robot_dict:
             goal_position = robot_dict[str(tag.tag_id)]
-            attractive_force = calculate_attractive_force(center, goal_position, strength=1.0)
+            attractive_force = calculate_attractive_force(center, goal_position, strength=4.0)
 
             # Calculate net force
             net_force = (attractive_force[0] + repulsive_force[0], attractive_force[1] + repulsive_force[1])
@@ -105,7 +102,7 @@ while True:
 
             prox = elisa.getAllProximity(tag.tag_id)
             if prox is not None:
-                if prox[0] > 40:
+                if prox[0] > 100:#40:
                     elisa.setLeftSpeed(tag.tag_id, -3)
                     elisa.setRightSpeed(tag.tag_id, -3)
                 else:
@@ -130,6 +127,12 @@ while True:
 
     # Place the formation switch check after processing all tags
     all_arrived = all(robot_status_dict.values())
+    
+    #Code to print batery from robots
+    # count = 0
+    # for i in robotAddr:
+    #     print(str(robotAddr[count]) + " battery = " + str(elisa.getBatteryPercent(robotAddr[0])))
+    #     count+=1
 
     if all_arrived:
         formation_id += 1
@@ -155,8 +158,6 @@ while True:
         cv2.destroyAllWindows()
         break
 
-
-    counter = counter + 1
     time.sleep(0.1)
 
    
