@@ -6,11 +6,10 @@ import copy
 import subprocess
 from utils import *
 
-
 try:
     subprocess.check_call("v4l2-ctl --set-ctrl=auto_exposure=1", shell=True)
-    subprocess.check_call("v4l2-ctl --device=/dev/video0 --set-ctrl=exposure_time_absolute=50", shell=True)
-    subprocess.check_call("v4l2-ctl --device=/dev/video0 --set-ctrl=contrast=70", shell=True)
+    subprocess.check_call("v4l2-ctl --device=/dev/video0 --set-ctrl=exposure_time_absolute=45", shell=True)
+    subprocess.check_call("v4l2-ctl --device=/dev/video0 --set-ctrl=contrast=100", shell=True)
     subprocess.check_call("v4l2-ctl --device=/dev/video0 --set-ctrl=brightness=40", shell=True)
     subprocess.check_call("v4l2-ctl --device=/dev/video0 --set-ctrl=zoom_absolute=100", shell=True)
     subprocess.check_call("v4l2-ctl --device=/dev/video0 --set-ctrl=focus_automatic_continuous=0", shell=True)
@@ -41,7 +40,16 @@ robot_status_dict = {robot_id: False for robot_id in robotAddr} #Status of locat
 elisa = elisa3.Elisa3(robotAddr)
 elisa.start()
 
-speed = 5 #Speed of robots
+sensor_range = 85 #Sensor range for avoidance of obstacles
+max_speed = 5 #The maximum speed of the robot
+min_speed = 0
+dynamic_sensor_range = sensor_range
+min_sensor_range = 50  # Minimum sensor range when close to the goal
+max_sensor_range = sensor_range  # Use the initially defined sensor range as the maximum
+kp = 0.1 #Proportional gain for the rotation control
+dead_zone = 5  # Threshold for the heading controller
+close_threshold = 10  #Distance within robot start slowing down and reducing the control gain
+stop_threshold = 5 #Distance within the robot stops moving
 
 while True:
     ret, frame = cap.read()
@@ -70,6 +78,8 @@ while True:
         # corner_04 = (int(corners[3][0]), int(corners[3][1]))
         mid = midpoint(corner_01,corner_02)
         cv2.line(debug_image, (center[0], center[1]),(mid[0], mid[1]), (255, 255, 0), 2)
+        cv2.circle(debug_image, (center[0], center[1]), int(dynamic_sensor_range/2), (255, 255, 255), 0)  # -1 fills the circle
+
         heading = calculate_heading(center,mid)
 
         if tag_identifier not in processed_tags:
@@ -85,45 +95,87 @@ while True:
         for other_tag in tags:
             if tag.tag_id != other_tag.tag_id:
                 other_center = (int(other_tag.center[0]), int(other_tag.center[1]))
-                obstacle_repulsion = calculate_repulsive_force(center, other_center, sensor_range=50, strength=2.5)
+                obstacle_repulsion = calculate_repulsive_force(center, other_center, sensor_range=dynamic_sensor_range, strength=100)
+
                 repulsive_force = (repulsive_force[0] + obstacle_repulsion[0], repulsive_force[1] + obstacle_repulsion[1])
 
         # Calculate attractive force towards the goal
         if str(tag.tag_id) in robot_dict:
             goal_position = robot_dict[str(tag.tag_id)]
-            attractive_force = calculate_attractive_force(center, goal_position, strength=4.0)
-
+            # Calculate distance to goal
+            distance_to_goal = calculate_distance(mid[0], mid[1], goal_position[0], goal_position[1])
+            
+            # Calculate attraction force
+            attractive_force = calculate_attractive_force(center, goal_position, strength=10)
             # Calculate net force
             net_force = (attractive_force[0] + repulsive_force[0], attractive_force[1] + repulsive_force[1])
 
-            # Determine movement direction based on net force
+            net_force_magnitude = (net_force[0]**2 + net_force[1]**2)**0.5
+            if net_force_magnitude != 0:
+                net_force_unit = (net_force[0] / net_force_magnitude, net_force[1] / net_force_magnitude)
+            else:
+                net_force_unit = (0, 0)
+            line_length = 50  # You can adjust this length
+            net_heading_point = (int(center[0] + net_force_unit[0] * line_length), int(center[1] + net_force_unit[1] * line_length))
+            cv2.line(debug_image, center, net_heading_point, (0, 255, 0), 2)  # Use a distinct color like green
             net_heading = calculate_heading(center, (center[0] + net_force[0], center[1] + net_force[1]))
-            rotation_direction = calculate_rotation_direction(heading, net_heading)
+            heading_error = heading - net_heading 
+            # Normalize the heading error to the range [-180, 180] for rotational control
+            heading_error = (heading_error + 180) % 360 - 180
 
-            prox = elisa.getAllProximity(tag.tag_id)
-            if prox is not None:
-                if prox[0] > 100:#40:
-                    elisa.setLeftSpeed(tag.tag_id, -3)
-                    elisa.setRightSpeed(tag.tag_id, -3)
-                else:
-                    # Adjust robot movement based on the net force
-                    if rotation_direction == "no rotation":
-                        elisa.setLeftSpeed(tag.tag_id, speed)
-                        elisa.setRightSpeed(tag.tag_id, speed)
-                    elif rotation_direction == "left":
-                        elisa.setLeftSpeed(tag.tag_id, -speed)
-                        elisa.setRightSpeed(tag.tag_id, speed)
-                    elif rotation_direction == "right":
-                        elisa.setLeftSpeed(tag.tag_id, speed)
-                        elisa.setRightSpeed(tag.tag_id, -speed)
+            # Check if the heading error is within the dead zone
+            if abs(heading_error) <= dead_zone:
+                # Inside the dead zone, make no rotation adjustment
+                rotation_adjustment = 0
+            else:
+                # Outside the dead zone, calculate the rotation speed adjustment using proportional control
+                rotation_adjustment = kp * heading_error
 
-                # Stop the robot if it is within a close distance to the goal
-                distance_to_goal = calculate_distance(mid[0], mid[1], goal_position[0], goal_position[1])
-                if distance_to_goal <= 5:
-                    elisa.setLeftSpeed(tag.tag_id, 0)
-                    elisa.setRightSpeed(tag.tag_id, 0)
-                    robot_status_dict[tag.tag_id] = True
-                    #print(robot_status_dict[tag.tag_id])
+            # Determine the base speed for forward movement
+            # This could be dynamically adjusted based on the distance to the goal or other criteria
+            base_speed = max_speed
+
+            # Adjust speed and Kp based on distance to goal
+            if distance_to_goal > close_threshold:
+                # Far from the goal, use normal behavior, max sensor range
+                adjusted_speed = base_speed
+                adjusted_kp = kp
+                dynamic_sensor_range = max_sensor_range
+
+            elif distance_to_goal > stop_threshold:
+                # Close to the goal, reduce speed and Kp
+                adjusted_speed = max(min_speed, base_speed * (distance_to_goal / close_threshold))  # Linear scaling
+                adjusted_kp = kp * (distance_to_goal / close_threshold)  # Linear scaling
+                # Closer to the goal, linearly scale the sensor range
+                dynamic_sensor_range = max(min_sensor_range, max_sensor_range * (distance_to_goal / close_threshold))
+
+            else:
+                # Very close to the goal, prepare to stop
+                adjusted_speed = 0
+                adjusted_kp = 0
+                # Very close to the goal, use the minimum sensor range
+                dynamic_sensor_range = min_sensor_range
+
+            # Recalculate rotation_adjustment with adjusted_kp
+            rotation_adjustment = adjusted_kp * heading_error
+
+            # Adjust the left and right wheel speeds based on the adjusted rotation adjustment and speed
+            left_speed = adjusted_speed - rotation_adjustment
+            right_speed = adjusted_speed + rotation_adjustment
+
+            # Apply the calculated speeds to the robot, ensuring they do not exceed maximum capabilities
+            left_speed = max(min(left_speed, max_speed), -max_speed)
+            right_speed = max(min(right_speed, max_speed), -max_speed)
+
+            elisa.setLeftSpeed(tag.tag_id, int(left_speed))
+            elisa.setRightSpeed(tag.tag_id, int(right_speed))
+
+            # Stop the robot if it is within a close distance to the goal
+            print(tag.tag_id, distance_to_goal)
+            if distance_to_goal <= stop_threshold:
+                elisa.setLeftSpeed(tag.tag_id, 0)
+                elisa.setRightSpeed(tag.tag_id, 0)
+                robot_status_dict[tag.tag_id] = True  # Mark as arrived
 
     # Place the formation switch check after processing all tags
     all_arrived = all(robot_status_dict.values())
@@ -131,8 +183,9 @@ while True:
     #Code to print batery from robots
     # count = 0
     # for i in robotAddr:
-    #     print(str(robotAddr[count]) + " battery = " + str(elisa.getBatteryPercent(robotAddr[0])))
+    #     print(str(robotAddr[count]) + " battery = " + str(elisa.getBatteryPercent(robotAddr[count])))
     #     count+=1
+    # print(str(robotAddr[4]) + " battery = " + str(elisa.getBatteryPercent(robotAddr[4])))
 
     if all_arrived:
         formation_id += 1

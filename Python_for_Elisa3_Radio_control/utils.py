@@ -279,7 +279,8 @@ def calculate_repulsive_force(current_position, obstacle_position, sensor_range,
         # Calculate vector from obstacle to robot
         vector_away_from_obstacle = (current_position[0] - obstacle_position[0], current_position[1] - obstacle_position[1])
         # Scale based on distance to obstacle and strength
-        scale = strength * (1 - (distance / sensor_range))
+        scale = strength * (1 - (distance / sensor_range)) ** 2  # Quadratic scaling for stronger repulsion at close range
+
         repulsive_force = (vector_away_from_obstacle[0] * scale, vector_away_from_obstacle[1] * scale)
         return repulsive_force
     else:
