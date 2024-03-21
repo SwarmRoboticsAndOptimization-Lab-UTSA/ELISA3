@@ -2,6 +2,7 @@ import tensorflow as tf
 import numpy as np
 import platform
 from typing import List, NamedTuple
+import subprocess
 
 import json
 
@@ -11,133 +12,11 @@ import math
 Interpreter = tf.lite.Interpreter
 load_delegate = tf.lite.experimental.load_delegate
 
-# pylint: enable=g-import-not-at-top
-
-
-class ObjectDetectorOptions(NamedTuple):
-  """A config to initialize an object detector."""
-
-  enable_edgetpu: bool = False
-  """Enable the model to run on EdgeTPU."""
-
-  label_allow_list: List[str] = None
-  """The optional allow list of labels."""
-
-  label_deny_list: List[str] = None
-  """The optional deny list of labels."""
-
-  max_results: int = -1
-  """The maximum number of top-scored detection results to return."""
-
-  num_threads: int = 1
-  """The number of CPU threads to be used."""
-
-  score_threshold: float = 0.0
-  """The score threshold of detection results to return."""
-
-
-class Rect(NamedTuple):
-  """A rectangle in 2D space."""
-  left: float
-  top: float
-  right: float
-  bottom: float
-
-
-class Category(NamedTuple):
-  """A result of a classification task."""
-  label: str
-  score: float
-  index: int
-
-
-class Detection(NamedTuple):
-  """A detected object as the result of an ObjectDetector."""
-  bounding_box: Rect
-  categories: List[Category]
-
-
-def edgetpu_lib_name():
-  """Returns the library name of EdgeTPU in the current platform."""
-  return {
-      'Darwin': 'libedgetpu.1.dylib',
-      'Linux': 'libedgetpu.so.1',
-      'Windows': 'edgetpu.dll',
-  }.get(platform.system(), None)
-
-
-
-class PIDController:
-    def __init__(self, Kp, Ki, Kd, max_output=None, min_output=None):
-        self.Kp = Kp
-        self.Ki = Ki
-        self.Kd = Kd
-        self.max_output = max_output
-        self.min_output = min_output
-        self.prev_error = 0
-        self.integral = 0
-
-    def update(self, error, dt):
-        self.integral += error * dt
-        derivative = (error - self.prev_error) / dt
-
-        output = self.Kp*error + self.Ki*self.integral + self.Kd*derivative
-
-        if self.max_output is not None:
-            output = min(output, self.max_output)
-        if self.min_output is not None:
-            output = max(output, self.min_output)
-
-        self.prev_error = error
-
-        return output
-
 _MARGIN = 5  # pixels
 _ROW_SIZE = 5  # pixels
 _FONT_SIZE = 1
 _FONT_THICKNESS = 1
 _TEXT_COLOR = (0, 0, 255)  # red
-
-def visualize(
-    image: np.ndarray,
-    detections: List[Detection],
-) -> np.ndarray:                #Function to visualize objects detected might be removed
-  """Draws bounding boxes on the input image and return it.
-  Args:
-    image: The input RGB image.
-    detections: The list of all "Detection" entities to be visualize.
-  Returns:
-    Image with bounding boxes.
-  """
-  for detection in detections:
-    # Draw bounding_box
-    left, top = int(detection.bounding_box.left), int(detection.bounding_box.top)
-    right, bottom = int(detection.bounding_box.right), int(detection.bounding_box.bottom)
-
-    point1 = (left, bottom)
-    point2 = (right, bottom)
-    point3 = ((left + right) // 2, top)
-    
-    pts = np.array([point1, point2, point3, point1], np.int32)
-    pts = pts.reshape((-1, 1, 2))
-
-    cv2.polylines(image, [pts], isClosed=True, color=(0, 255, 0), thickness=3)
-
-    # start_point = detection.bounding_box.left, detection.bounding_box.top
-    # end_point = detection.bounding_box.right, detection.bounding_box.bottom
-    # cv2.rectangle(image, start_point, end_point, _TEXT_COLOR, 3)
-
-    # Draw label and score
-    category = detection.categories[0]
-    class_name = category.label
-    probability = round(category.score, 2)
-    result_text = class_name + ' (' + str(probability) + ')'
-    text_location = (_MARGIN + detection.bounding_box.left,
-                     _MARGIN + _ROW_SIZE + detection.bounding_box.top)
-    cv2.putText(image, result_text, text_location, cv2.FONT_HERSHEY_PLAIN,
-                _FONT_SIZE, _TEXT_COLOR, _FONT_THICKNESS)
-
-  return image
 
 def midpoint(point1, point2): #Function to calculate the mid point between two points
     x1, y1 = point1
@@ -171,32 +50,6 @@ def calculate_heading(point1, point2): #Function to calculate the heading based 
 # point2 = (1, 1)
 # print(calculate_heading(point1, point2))  # Should be roughly 45.0
 
-def calculate_rotation_direction(current_heading, desired_heading, tolerance=20):
-    """
-    Calculate the angle difference
-    """
-    angle_difference = desired_heading - current_heading
-
-    # Normalize the angle difference to -180 to 180 degrees
-    angle_difference = (angle_difference + 180) % 360 - 180
-
-    # Determine the direction to rotate
-    if abs(angle_difference) > tolerance:
-        if angle_difference > 0:
-          rotation_direction = "right"
-        else:
-          rotation_direction = "left"
-    else:
-        rotation_direction = "no rotation"  # Already at the desired angle
-
-    return rotation_direction
-
-#Example usage:
-# current_heading = 30  # Current heading in degrees
-# desired_heading = 150  # Desired heading in degrees
-# rotation_direction = calculate_rotation_direction(current_heading, desired_heading)
-# print(f"Rotate to the {rotation_direction} to reach the desired angle.")
-
 
 def calculate_distance(x1, y1, x2, y2):
     """
@@ -215,12 +68,6 @@ def calculate_distance(x1, y1, x2, y2):
 # x2, y2 = 3, 4  # Coordinates of the second point
 # distance = calculate_distance(x1, y1, x2, y2)
 # print(f"The distance between the two points is {distance:.2f} units.")
-
-
-
-def click_event(event, x, y, flags, param):
-    if event == cv2.EVENT_LBUTTONDOWN:
-        print(f'({x}, {y})')  # prints the (x,y) coordinates on left button down
 
 
 
@@ -286,6 +133,25 @@ def calculate_repulsive_force(current_position, obstacle_position, sensor_range,
     else:
         return (0, 0)
 
+# Camera and Detector Setup
+def initialize_camera():
+    try:
+        subprocess.check_call(["v4l2-ctl", "--set-ctrl=auto_exposure=1"])
+        commands = [
+            "v4l2-ctl --device=/dev/video0 --set-ctrl=exposure_time_absolute=25",
+            "v4l2-ctl --device=/dev/video0 --set-ctrl=contrast=100",
+            "v4l2-ctl --device=/dev/video0 --set-ctrl=brightness=10",
+            "v4l2-ctl --device=/dev/video0 --set-ctrl=zoom_absolute=100",
+            "v4l2-ctl --device=/dev/video0 --set-ctrl=focus_automatic_continuous=0",
+            "v4l2-ctl --device=/dev/video0 --set-ctrl=focus_absolute=0",
+        ]
+        for cmd in commands:
+            subprocess.check_call(cmd, shell=True)
+    except subprocess.CalledProcessError:
+        print("Error executing camera setup commands.")
+
+
+
 def get_formations_list():
   formations_list = [
     [ #U Formation
@@ -313,13 +179,13 @@ def get_formations_list():
     (300,450)  # Mid Bottom
     ],
     [ #S Formation
-    (300, 150), # Top
-    (225, 200), # 1 second row
-    (375, 200),# 2 second row
-    (225, 250), # 1 third row
-    (263, 300), #  1 fourth row
-    (337, 350), # 1 fifth row
-    (375, 400), #  1 sixt row
+    (350, 60), # Top
+    (205, 120), # 1 second row
+    (495, 120),# 2 second row
+    (205, 210), # 1 third row
+    (350, 250), #  1 fourth row
+    (360, 290), # 1 fifth row
+    (360, 400), #  1 sixt row
     (337, 450), # 1 last row
     (263, 450), # 2 last row
     (225, 450) #  3 last row

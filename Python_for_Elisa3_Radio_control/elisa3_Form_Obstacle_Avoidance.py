@@ -6,17 +6,13 @@ import copy
 import subprocess
 from utils import *
 
-try:
-    subprocess.check_call("v4l2-ctl --set-ctrl=auto_exposure=1", shell=True)
-    subprocess.check_call("v4l2-ctl --device=/dev/video0 --set-ctrl=exposure_time_absolute=45", shell=True)
-    subprocess.check_call("v4l2-ctl --device=/dev/video0 --set-ctrl=contrast=100", shell=True)
-    subprocess.check_call("v4l2-ctl --device=/dev/video0 --set-ctrl=brightness=40", shell=True)
-    subprocess.check_call("v4l2-ctl --device=/dev/video0 --set-ctrl=zoom_absolute=100", shell=True)
-    subprocess.check_call("v4l2-ctl --device=/dev/video0 --set-ctrl=focus_automatic_continuous=0", shell=True)
-    subprocess.check_call("v4l2-ctl --device=/dev/video0 --set-ctrl=focus_absolute=0", shell=True)
-    
-except subprocess.CalledProcessError:
-    print(f"Error executing the command:")
+#BITMAP LETTERS
+#PARAMETRIC REPRESENTATION OF LETTERS
+#Points for letters 
+#TODO Automate letter formation based on available robots
+#TODO BIGGER LETTER TO MAXIMIZE NUMBER OF ROBOTS
+
+initialize_camera()
 
 at_detector = Detector(
         families="tagCustom48h12",
@@ -78,7 +74,6 @@ while True:
         # corner_04 = (int(corners[3][0]), int(corners[3][1]))
         mid = midpoint(corner_01,corner_02)
         cv2.line(debug_image, (center[0], center[1]),(mid[0], mid[1]), (255, 255, 0), 2)
-        cv2.circle(debug_image, (center[0], center[1]), int(dynamic_sensor_range/2), (255, 255, 255), 0)  # -1 fills the circle
 
         heading = calculate_heading(center,mid)
 
@@ -96,7 +91,6 @@ while True:
             if tag.tag_id != other_tag.tag_id:
                 other_center = (int(other_tag.center[0]), int(other_tag.center[1]))
                 obstacle_repulsion = calculate_repulsive_force(center, other_center, sensor_range=dynamic_sensor_range, strength=100)
-
                 repulsive_force = (repulsive_force[0] + obstacle_repulsion[0], repulsive_force[1] + obstacle_repulsion[1])
 
         # Calculate attractive force towards the goal
@@ -118,6 +112,7 @@ while True:
             line_length = 50  # You can adjust this length
             net_heading_point = (int(center[0] + net_force_unit[0] * line_length), int(center[1] + net_force_unit[1] * line_length))
             cv2.line(debug_image, center, net_heading_point, (0, 255, 0), 2)  # Use a distinct color like green
+
             net_heading = calculate_heading(center, (center[0] + net_force[0], center[1] + net_force[1]))
             heading_error = heading - net_heading 
             # Normalize the heading error to the range [-180, 180] for rotational control
@@ -156,6 +151,8 @@ while True:
                 # Very close to the goal, use the minimum sensor range
                 dynamic_sensor_range = min_sensor_range
 
+            cv2.circle(debug_image, center, int(dynamic_sensor_range/2), (255,255,255), 0) #Draw circle goal location
+
             # Recalculate rotation_adjustment with adjusted_kp
             rotation_adjustment = adjusted_kp * heading_error
 
@@ -171,7 +168,6 @@ while True:
             elisa.setRightSpeed(tag.tag_id, int(right_speed))
 
             # Stop the robot if it is within a close distance to the goal
-            print(tag.tag_id, distance_to_goal)
             if distance_to_goal <= stop_threshold:
                 elisa.setLeftSpeed(tag.tag_id, 0)
                 elisa.setRightSpeed(tag.tag_id, 0)

@@ -65,8 +65,8 @@ while True:
 
 
     display_locations = get_formations_list()
-    # for i in display_locations[3]:
-    #     cv2.circle(frame, i, 4, (0,255,255), -1) #Draw circle goal location
+    for i in display_locations[0]:
+        cv2.circle(frame, i, 4, (0,255,255), -1) #Draw circle goal location
 
     for tag in tags:
         center = (int(tag.center[0]), int(tag.center[1]))
@@ -79,6 +79,7 @@ while True:
 
     # Display the resulting frame
     cv2.imshow('Frame', frame)
+    print(frame.shape)
 
     # Press 'q' to exit the loop
     if cv2.waitKey(1) & 0xFF == ord('q'):
