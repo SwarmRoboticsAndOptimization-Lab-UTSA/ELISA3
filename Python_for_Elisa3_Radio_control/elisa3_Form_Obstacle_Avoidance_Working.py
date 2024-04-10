@@ -4,11 +4,14 @@ import cv2
 from pupil_apriltags import Detector
 import copy
 import subprocess
-from utils import *
+from utils_copy import *
 
 #BITMAP LETTERS
 #PARAMETRIC REPRESENTATION OF LETTERS
 #Points for letters 
+#TODO Automate letter formation based on available robots
+#TODO BIGGER LETTER TO MAXIMIZE NUMBER OF ROBOTS
+
 initialize_camera()
 
 at_detector = Detector(
@@ -23,14 +26,13 @@ at_detector = Detector(
 
 cap = cv2.VideoCapture(0)
 processed_tags = set()  # Set to keep track of processed tags
-
-robot_dict = {}
-detected_robot_ids = set()
-robotAddr = [3948,4060,4021,4469,3988,4104,3868,4096,4101,4083]
 formation_id = 0
-formations = get_formations_list(len(robotAddr))
+formations = get_formations_list()
 current_formation = formations[formation_id]
 display_locations = current_formation.copy()
+robot_dict = {}
+detected_robot_ids = set()
+robotAddr = [3948,4050,4021,4469,3988,4104,3868,4096,4101,4083]
 robot_status_dict = {robot_id: False for robot_id in robotAddr} #Status of location of the robots
 elisa = elisa3.Elisa3(robotAddr)
 elisa.start()
@@ -39,7 +41,7 @@ sensor_range = 95 #Sensor range for avoidance of obstacles
 max_speed = 5 #The maximum speed of the robot
 min_speed = -5
 dynamic_sensor_range = sensor_range
-min_sensor_range = 60  # Minimum sensor range when close to the goal
+min_sensor_range = 50  # Minimum sensor range when close to the goal
 max_sensor_range = sensor_range  # Use the initially defined sensor range as the maximum
 kp = 0.1 #Proportional gain for the rotation control
 dead_zone = 5  # Threshold for the heading controller
@@ -50,6 +52,7 @@ while True:
     ret, frame = cap.read()
     if not ret:
         break
+
     detected_robot_ids = set()
     debug_image = copy.deepcopy(frame)
 
@@ -73,14 +76,14 @@ while True:
         # corner_03 = (int(corners[2][0]), int(corners[2][1]))
         # corner_04 = (int(corners[3][0]), int(corners[3][1]))
         mid = midpoint(corner_01,corner_02)
-        cv2.line(debug_image, (center[0], center[1]),(mid[0], mid[1]), (255, 255, 0), 2)
+        cv2.line(debug_image, (center[0], center[1]),(mid[0], mid[1]), (0, 0, 255), 2)
 
         heading = calculate_heading(center,mid)
         detected_robot_ids.add(tag.tag_id)  # Add the detected robot's ID to the set
 
         if tag_identifier not in processed_tags:
             # Assuming desired_location is defined and find_and_remove_closest_point as previously described
-            current_formation, closest_point = find_and_remove_closest_point(current_formation, center)
+            current_formation, closest_point = find_and_remove_closest_point(list(current_formation), center)
             processed_tags.add(tag_identifier)  # Mark the tag as processed
             robot_dict[str(tag.tag_id)] = closest_point #Add robot and its desired location
       
@@ -91,9 +94,7 @@ while True:
         for other_tag in tags:
             if tag.tag_id != other_tag.tag_id:
                 other_center = (int(other_tag.center[0]), int(other_tag.center[1]))
-                # Calculate repulsive force from the current robot to the other robot
-                obstacle_repulsion = calculate_repulsive_force(center, other_center, sensor_range=dynamic_sensor_range, strength=10)
-                # Accumulate the repulsive forces
+                obstacle_repulsion = calculate_repulsive_force(center, other_center, sensor_range=dynamic_sensor_range, strength=100)
                 repulsive_force = (repulsive_force[0] + obstacle_repulsion[0], repulsive_force[1] + obstacle_repulsion[1])
 
         # Calculate attractive force towards the goal
@@ -102,8 +103,7 @@ while True:
             # Calculate distance to goal
             distance_to_goal = calculate_distance(mid[0], mid[1], goal_position[0], goal_position[1])
             # Calculate attraction force
-            attractive_force = calculate_attractive_force(center, goal_position, strength=1)
-            # print(str(tag.tag_id), " ", attractive_force)
+            attractive_force = calculate_attractive_force(center, goal_position, strength=10)
             # Calculate net force
             net_force = (attractive_force[0] + repulsive_force[0], attractive_force[1] + repulsive_force[1])
 
@@ -219,5 +219,3 @@ while True:
         break
 
     time.sleep(0.1)
-
-   

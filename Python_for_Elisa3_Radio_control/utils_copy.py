@@ -68,9 +68,8 @@ def calculate_distance(x1, y1, x2, y2):
 # x2, y2 = 3, 4  # Coordinates of the second point
 # distance = calculate_distance(x1, y1, x2, y2)
 # print(f"The distance between the two points is {distance:.2f} units.")
-def calculate_distance_point(p1, p2):
-    """Calculate the Euclidean distance between two points."""
-    return ((p1[0] - p2[0])**2 + (p1[1] - p2[1])**2)**0.5
+
+
 
 def find_and_remove_closest_point(points, target_point):
     """
@@ -89,16 +88,11 @@ def find_and_remove_closest_point(points, target_point):
     distances = [(math.sqrt((x - target_point[0]) ** 2 + (y - target_point[1]) ** 2), i)
                  for i, (x, y) in enumerate(points)]
     
-    try:
-        # Find the closest point (minimum distance) and its index
-        _, closest_point_index = min(distances, key=lambda x: x[0])
-    except:
-        pass
+    # Find the closest point (minimum distance) and its index
+    _, closest_point_index = min(distances, key=lambda x: x[0])
+    
     # Extract the closest point
-    try:
-        closest_point = points.pop(closest_point_index)
-    except:
-        pass
+    closest_point = points.pop(closest_point_index)
     
     # Return the modified list and the closest point
     return points, closest_point
@@ -114,14 +108,8 @@ def calculate_attractive_force(current_position, goal_position, strength=1.0):
     """
     # Vector from current to goal
     vector_to_goal = (goal_position[0] - current_position[0], goal_position[1] - current_position[1])
-    # Calculate the magnitude (length) of the vector
-    magnitude = (vector_to_goal[0]**2 + vector_to_goal[1]**2)**0.5
-    # Normalize the vector to have a length of 1, then scale by strength
-    if magnitude != 0:
-        normalized_vector_to_goal = (vector_to_goal[0] / magnitude, vector_to_goal[1] / magnitude)
-    else:
-        normalized_vector_to_goal = (0, 0)  # Handle the case where current_position == goal_position
-    attractive_force = (normalized_vector_to_goal[0] * strength, normalized_vector_to_goal[1] * strength)
+    # Optionally, apply strength scaling
+    attractive_force = (vector_to_goal[0] * strength, vector_to_goal[1] * strength)
     return attractive_force
 
 def calculate_repulsive_force(current_position, obstacle_position, sensor_range, strength=1.0):
@@ -150,9 +138,9 @@ def initialize_camera():
     try:
         subprocess.check_call(["v4l2-ctl", "--set-ctrl=auto_exposure=1"])
         commands = [
-            "v4l2-ctl --device=/dev/video0 --set-ctrl=exposure_time_absolute=42",
-            "v4l2-ctl --device=/dev/video0 --set-ctrl=contrast=100",
-            "v4l2-ctl --device=/dev/video0 --set-ctrl=brightness=10",
+            "v4l2-ctl --device=/dev/video0 --set-ctrl=exposure_time_absolute=46",
+            "v4l2-ctl --device=/dev/video0 --set-ctrl=contrast=75",
+            "v4l2-ctl --device=/dev/video0 --set-ctrl=brightness=40",
             "v4l2-ctl --device=/dev/video0 --set-ctrl=zoom_absolute=100",
             "v4l2-ctl --device=/dev/video0 --set-ctrl=focus_automatic_continuous=0",
             "v4l2-ctl --device=/dev/video0 --set-ctrl=focus_absolute=0",
@@ -163,67 +151,56 @@ def initialize_camera():
         print("Error executing camera setup commands.")
 
 
-def distribute_points(paths, num_points):
-    """
-    Distribute points evenly along a series of lines defined by start and end points.
-    :param paths: List of tuples, where each tuple contains start and end points (x, y) of a line.
-    :param num_points: Total number of points to distribute.
-    :return: List of point coordinates (x, y) where points should be placed.
-    """
-    # Calculate the total length of the paths
-    total_length = sum(calculate_distance_point(start, end) for start, end in paths)
-    
-    # Calculate distance between points
-    distance_between_points = total_length / (num_points - 1)
-    
-    points = []
-    accumulated_distance = 0
-    
-    for start, end in paths:
-        if not points:
-            # Add the first point
-            points.append(start)
-            last_point = start
-        else:
-            last_point = points[-1]
 
-        # Calculate the length of the current line
-        line_length = calculate_distance_point(start, end)
-        while accumulated_distance + distance_between_points <= line_length:
-            # Find the next point along the line
-            ratio = (accumulated_distance + distance_between_points) / line_length
-            next_point = (start[0] + ratio * (end[0] - start[0]), start[1] + ratio * (end[1] - start[1]))
-            points.append(next_point)
-            # Update the accumulated distance
-            accumulated_distance += distance_between_points
-            last_point = next_point
-
-        # Update the accumulated distance for the next line
-        accumulated_distance -= line_length
-
-    # Ensure the last point is always added
-    if len(points) < num_points:
-        points.append(paths[-1][1])
-
-    return points
-
-# Define the paths for the letter U
-paths_u = [((80, 40), (80, 430)), ((80, 430), (570, 430)), ((570, 430), (570, 40))]
-paths_t = [((80, 40), (570,40)), ((245, 40), (245, 430))]
-paths_s = [((80, 40), (80, 430)), ((80, 430), (570, 430)), ((570, 430), (570, 40))]
-paths_a = [((80, 40), (80, 430)), ((80, 430), (570, 430)), ((570, 430), (570, 40))]
-
-# Distribute 10 points
-
-def get_formations_list(num_robots):
-  points_u = distribute_points(paths_u, num_robots)
-  points_t = distribute_points(paths_t, num_robots)
-  points_s = distribute_points(paths_s, num_robots)
-  points_a = distribute_points(paths_a, num_robots)
+def get_formations_list():
   formations_list = [
-    points_u,
-    points_t,
-    points_s,
-    points_a
+    [ #U Formation
+    (150, 150), # Top left
+    (150, 250), # Mid left
+    (150, 350), # Mid2 left
+    (150, 450), # Bottom left
+    (250, 450), # Bottom, starting to move right
+    (350, 450), # Bottom, further right
+    (450, 450), # Bottom, even further right
+    (450, 350), # Bottom right
+    (450, 250), # Mid right
+    (450, 150), # Top right
+    ],
+    [ #T Formation
+    (150,150), # Top left 1
+    (210,150), # Top left 2
+    (270,150), # Mid 1
+    (330,150), # Mid 2
+    (390,150), # Top right 1
+    (450,150), # Top right 2
+    (300,225), # Mid 3
+    (300,300), # Mid 4
+    (300,375), # Mid 5
+    (300,450)  # Mid Bottom
+    ],
+    [ #S Formation
+    (350, 60), # Top
+    (120, 120), # 1 second row
+    (360, 120),# 2 second row
+    (120, 210), # 1 third row
+    (350, 250), #  1 fourth row
+    (360, 290), # 1 fifth row
+    (360, 400), #  1 sixt row
+    (337, 450), # 1 last row
+    (263, 450), # 2 last row
+    (225, 450) #  3 last row
+    ],
+    [ #A Formation
+    (300,150),
+    (225,213),
+    (375,213),
+    (150,321),
+    (225,321),
+    (300,321),
+    (375,321),
+    (450,321),
+    (150,440),
+    (450,440),
+    ]
   ]
   return formations_list

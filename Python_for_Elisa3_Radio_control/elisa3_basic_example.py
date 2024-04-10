@@ -1,7 +1,8 @@
 import elisa3
 import time
 
-robotAddr = [4050, 4096, 4469, 4021, 4060, 4104, 4101, 4083]
+# robotAddr = [4050, 4096, 4469, 4021, 4060, 4104, 4101, 4083]
+robotAddr = [3868]
 elisa = elisa3.Elisa3(robotAddr)
 elisa.start()
 
