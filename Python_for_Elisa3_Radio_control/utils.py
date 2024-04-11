@@ -150,9 +150,9 @@ def initialize_camera():
     try:
         subprocess.check_call(["v4l2-ctl", "--set-ctrl=auto_exposure=1"])
         commands = [
-            "v4l2-ctl --device=/dev/video0 --set-ctrl=exposure_time_absolute=42",
-            "v4l2-ctl --device=/dev/video0 --set-ctrl=contrast=100",
-            "v4l2-ctl --device=/dev/video0 --set-ctrl=brightness=10",
+            "v4l2-ctl --device=/dev/video0 --set-ctrl=exposure_time_absolute=129",
+            "v4l2-ctl --device=/dev/video0 --set-ctrl=contrast=0",
+            "v4l2-ctl --device=/dev/video0 --set-ctrl=brightness=40",
             "v4l2-ctl --device=/dev/video0 --set-ctrl=zoom_absolute=100",
             "v4l2-ctl --device=/dev/video0 --set-ctrl=focus_automatic_continuous=0",
             "v4l2-ctl --device=/dev/video0 --set-ctrl=focus_absolute=0",
@@ -183,20 +183,17 @@ def distribute_points(paths, num_points):
         if not points:
             # Add the first point
             points.append(start)
-            last_point = start
-        else:
-            last_point = points[-1]
+        last_point = points[-1]
 
         # Calculate the length of the current line
         line_length = calculate_distance_point(start, end)
         while accumulated_distance + distance_between_points <= line_length:
             # Find the next point along the line
             ratio = (accumulated_distance + distance_between_points) / line_length
-            next_point = (start[0] + ratio * (end[0] - start[0]), start[1] + ratio * (end[1] - start[1]))
+            next_point = (int(round(start[0] + ratio * (end[0] - start[0]))), int(round(start[1] + ratio * (end[1] - start[1]))))
             points.append(next_point)
             # Update the accumulated distance
             accumulated_distance += distance_between_points
-            last_point = next_point
 
         # Update the accumulated distance for the next line
         accumulated_distance -= line_length
@@ -209,9 +206,9 @@ def distribute_points(paths, num_points):
 
 # Define the paths for the letter U
 paths_u = [((80, 40), (80, 430)), ((80, 430), (570, 430)), ((570, 430), (570, 40))]
-paths_t = [((80, 40), (570,40)), ((245, 40), (245, 430))]
-paths_s = [((80, 40), (80, 430)), ((80, 430), (570, 430)), ((570, 430), (570, 40))]
-paths_a = [((80, 40), (80, 430)), ((80, 430), (570, 430)), ((570, 430), (570, 40))]
+paths_t = [((80, 40), (570, 40)), ((325, 40), (325, 430))]
+paths_s = [((80, 40), (570, 40)), ((80, 40), (80, 255)), ((80, 255), (570, 255)), ((570, 255),(570,430)), ((570,430),(80,430))]
+paths_a = [((80, 40), (570, 40)), ((80, 40), (80, 430)), ((80, 300), (570, 300)), ((570, 40),(570, 430))]
 
 # Distribute 10 points
 

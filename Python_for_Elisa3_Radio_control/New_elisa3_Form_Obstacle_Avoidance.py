@@ -26,9 +26,12 @@ processed_tags = set()  # Set to keep track of processed tags
 
 robot_dict = {}
 detected_robot_ids = set()
-robotAddr = [3948,4060,4021,4469,3988,4104,3868,4096,4101,4083]
+robotAddr = [3868,4050,3828,4060,4083,4021,3904,3829,3918,4469,4101]
 formation_id = 0
 formations = get_formations_list(len(robotAddr))
+
+print('formations', formations)
+
 current_formation = formations[formation_id]
 display_locations = current_formation.copy()
 robot_status_dict = {robot_id: False for robot_id in robotAddr} #Status of location of the robots
@@ -181,11 +184,12 @@ while True:
     all_arrived = all(robot_status_dict.values())
     
     #Code to print batery from robots
-    # count = 0
-    # for i in robotAddr:
-    #     print(str(robotAddr[count]) + " battery = " + str(elisa.getBatteryPercent(robotAddr[count])))
-    #     count+=1
-    # print(str(robotAddr[4]) + " battery = " + str(elisa.getBatteryPercent(robotAddr[4])))
+    count = 0
+    for i in robotAddr:
+        print(str(robotAddr[count]) + " battery = " + str(elisa.getBatteryPercent(robotAddr[count])))
+        count+=1
+    print("---------------------------")
+    
 
     if all_arrived:
         formation_id += 1
