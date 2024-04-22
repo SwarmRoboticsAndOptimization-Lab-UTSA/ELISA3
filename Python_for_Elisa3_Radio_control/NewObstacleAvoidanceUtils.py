@@ -150,9 +150,9 @@ def initialize_camera():
     try:
         subprocess.check_call(["v4l2-ctl", "--set-ctrl=auto_exposure=1"])
         commands = [
-            "v4l2-ctl --device=/dev/video0 --set-ctrl=exposure_time_absolute=129",
-            "v4l2-ctl --device=/dev/video0 --set-ctrl=contrast=0",
-            "v4l2-ctl --device=/dev/video0 --set-ctrl=brightness=40",
+            "v4l2-ctl --device=/dev/video0 --set-ctrl=exposure_time_absolute=155",
+            "v4l2-ctl --device=/dev/video0 --set-ctrl=contrast=76",
+            "v4l2-ctl --device=/dev/video0 --set-ctrl=brightness=0",
             "v4l2-ctl --device=/dev/video0 --set-ctrl=zoom_absolute=100",
             "v4l2-ctl --device=/dev/video0 --set-ctrl=focus_automatic_continuous=0",
             "v4l2-ctl --device=/dev/video0 --set-ctrl=focus_absolute=0",
@@ -162,6 +162,21 @@ def initialize_camera():
     except subprocess.CalledProcessError:
         print("Error executing camera setup commands.")
 
+def extract_tag_info(tag, debug_image):
+    tag_identifier = (tag.tag_family, tag.tag_id)  # Unique identifier for each tag
+    #tag_family = tag.tag_family
+    #tag_id = tag.tag_id
+    center = tag.center
+    corners = tag.corners
+    center = (int(center[0]), int(center[1]))
+    corner_01 = (int(corners[0][0]), int(corners[0][1]))
+    corner_02 = (int(corners[1][0]), int(corners[1][1]))
+    # corner_03 = (int(corners[2][0]), int(corners[2][1]))
+    # corner_04 = (int(corners[3][0]), int(corners[3][1]))
+    mid = midpoint(corner_01,corner_02)
+    cv2.line(debug_image, (center[0], center[1]),(mid[0], mid[1]), (255, 255, 0), 2)
+
+    return tag_identifier, center, corners, mid,debug_image
 
 def distribute_points(paths, num_points):
     """
@@ -224,3 +239,30 @@ def get_formations_list(num_robots):
     points_a
   ]
   return formations_list
+
+def assign_unique_goals(tags,current_formation):
+    distances = [] 
+
+    for tag in tags:
+        center = tag.center
+        corners = tag.corners
+        center = (int(center[0]), int(center[1]))
+        corner_01 = (int(corners[0][0]), int(corners[0][1]))
+        corner_02 = (int(corners[1][0]), int(corners[1][1]))
+        mid = midpoint(corner_01,corner_02)
+        # print(tag.tag_id, mid)
+        for goal in current_formation:
+            distance_to_goal = calculate_distance(mid[0], mid[1], goal[0], goal[1])
+            distances.append((distance_to_goal, tag.tag_id, goal))
+    
+    distances.sort()
+    assigned_goals = set()
+    robot_goal_pairs = {}
+
+   # Assign goals to robots, ensuring no goal is assigned twice
+    for distance, robot_id, goal in distances:
+        if goal not in assigned_goals and robot_id not in robot_goal_pairs:
+            assigned_goals.add(goal)
+            robot_goal_pairs[robot_id] = goal
+
+    return robot_goal_pairs

@@ -4,7 +4,7 @@ import cv2
 from pupil_apriltags import Detector
 import copy
 import subprocess
-from utils_copy import *
+from ELISA3.Python_for_Elisa3_Radio_control.ObstacleAvoidanceUtiles import *
 
 #BITMAP LETTERS
 #PARAMETRIC REPRESENTATION OF LETTERS

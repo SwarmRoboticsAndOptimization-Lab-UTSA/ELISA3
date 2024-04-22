@@ -4,7 +4,7 @@ import cv2
 from pupil_apriltags import Detector
 import copy
 import subprocess
-from utils import *
+from NewObstacleAvoidanceUtils import *
 
 commands = [
     "v4l2-ctl --set-ctrl=auto_exposure=1",
