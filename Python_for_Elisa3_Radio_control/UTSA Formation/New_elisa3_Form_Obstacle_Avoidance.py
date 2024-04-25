@@ -4,11 +4,8 @@ import cv2
 from pupil_apriltags import Detector
 import copy
 import subprocess
-from utils import *
+from NewObstacleAvoidanceUtils import *
 
-#BITMAP LETTERS
-#PARAMETRIC REPRESENTATION OF LETTERS
-#Points for letters 
 initialize_camera()
 
 at_detector = Detector(
@@ -26,11 +23,12 @@ processed_tags = set()  # Set to keep track of processed tags
 
 robot_dict = {}
 detected_robot_ids = set()
-robotAddr = [3868,4050,3828,4060,4083,4021,3904,3829,3918,4469,4101]
+robotAddr = [4469,3829,3868,3904,4021,4050,3918,4101,4096,3828,3887,3823,3846,3890,3901]
+
+# robotAddr = [3868,4050,3828,4060,4083,4021,3904,3829,3918,4469,4101,3988,4096,3948,4104]
+# robotAddr = [3918,3868,3828]
 formation_id = 0
 formations = get_formations_list(len(robotAddr))
-
-print('formations', formations)
 
 current_formation = formations[formation_id]
 display_locations = current_formation.copy()
@@ -38,16 +36,17 @@ robot_status_dict = {robot_id: False for robot_id in robotAddr} #Status of locat
 elisa = elisa3.Elisa3(robotAddr)
 elisa.start()
 
-sensor_range = 95 #Sensor range for avoidance of obstacles
+sensor_range = 80 #Sensor range for avoidance of obstacles
 max_speed = 5 #The maximum speed of the robot
 min_speed = -5
 dynamic_sensor_range = sensor_range
-min_sensor_range = 60  # Minimum sensor range when close to the goal
+min_sensor_range = 50  # Minimum sensor range when close to the goal
 max_sensor_range = sensor_range  # Use the initially defined sensor range as the maximum
 kp = 0.1 #Proportional gain for the rotation control
 dead_zone = 5  # Threshold for the heading controller
 close_threshold = 20  #Distance within robot start slowing down and reducing the control gain
-stop_threshold = 10 #Distance within the robot stops moving
+stop_threshold = 8 #Distance within the robot stops moving
+assigned_goals_bool = False
 
 while True:
     ret, frame = cap.read()
@@ -64,29 +63,23 @@ while True:
         tag_size=None,
     )
 
+    if assigned_goals_bool is True:
+        pass
+    else:
+        # Assign unique goals to robots
+        assigned_goals = assign_unique_goals(tags, current_formation)
+        assigned_goals_bool = True
+    
     for tag in tags:
-        tag_identifier = (tag.tag_family, tag.tag_id)  # Unique identifier for each tag
-        #tag_family = tag.tag_family
-        #tag_id = tag.tag_id
-        center = tag.center
-        corners = tag.corners
-        center = (int(center[0]), int(center[1]))
-        corner_01 = (int(corners[0][0]), int(corners[0][1]))
-        corner_02 = (int(corners[1][0]), int(corners[1][1]))
-        # corner_03 = (int(corners[2][0]), int(corners[2][1]))
-        # corner_04 = (int(corners[3][0]), int(corners[3][1]))
-        mid = midpoint(corner_01,corner_02)
-        cv2.line(debug_image, (center[0], center[1]),(mid[0], mid[1]), (255, 255, 0), 2)
-
+        # print(tag.tag_id)
+        tag_identifier, center, corners, mid, debug_image = extract_tag_info(tag,debug_image)
         heading = calculate_heading(center,mid)
         detected_robot_ids.add(tag.tag_id)  # Add the detected robot's ID to the set
 
-        if tag_identifier not in processed_tags:
-            # Assuming desired_location is defined and find_and_remove_closest_point as previously described
-            current_formation, closest_point = find_and_remove_closest_point(current_formation, center)
-            processed_tags.add(tag_identifier)  # Mark the tag as processed
-            robot_dict[str(tag.tag_id)] = closest_point #Add robot and its desired location
-      
+        for robot_id, goal in assigned_goals.items():
+            if tag.tag_id == robot_id:
+                robot_dict[str(tag.tag_id)] = goal #Add robot and its desired location
+        
         # Initialize repulsive force for current robot
         repulsive_force = (0, 0)
 
@@ -95,7 +88,7 @@ while True:
             if tag.tag_id != other_tag.tag_id:
                 other_center = (int(other_tag.center[0]), int(other_tag.center[1]))
                 # Calculate repulsive force from the current robot to the other robot
-                obstacle_repulsion = calculate_repulsive_force(center, other_center, sensor_range=dynamic_sensor_range, strength=10)
+                obstacle_repulsion = calculate_repulsive_force(center, other_center, sensor_range=dynamic_sensor_range, strength=7)
                 # Accumulate the repulsive forces
                 repulsive_force = (repulsive_force[0] + obstacle_repulsion[0], repulsive_force[1] + obstacle_repulsion[1])
 
@@ -106,7 +99,6 @@ while True:
             distance_to_goal = calculate_distance(mid[0], mid[1], goal_position[0], goal_position[1])
             # Calculate attraction force
             attractive_force = calculate_attractive_force(center, goal_position, strength=1)
-            # print(str(tag.tag_id), " ", attractive_force)
             # Calculate net force
             net_force = (attractive_force[0] + repulsive_force[0], attractive_force[1] + repulsive_force[1])
 
@@ -135,32 +127,41 @@ while True:
             # Determine the base speed for forward movement
             # This could be dynamically adjusted based on the distance to the goal or other criteria
             base_speed = max_speed
+           
+            # Determine the influence level of the net force
+            force_influence_threshold = 0.5 * max_speed  # You can adjust this threshold based on your system's needs
 
-            # Adjust speed and Kp based on distance to goal
-            if distance_to_goal > close_threshold:
-                # Far from the goal, use normal behavior, max sensor range
-                adjusted_speed = base_speed
-                adjusted_kp = kp
-                dynamic_sensor_range = max_sensor_range
-
-            elif distance_to_goal > stop_threshold:
-                # Close to the goal, reduce speed and Kp
-                adjusted_speed = max(min_speed, base_speed * (distance_to_goal / close_threshold))  # Linear scaling
-                adjusted_kp = kp * (distance_to_goal / close_threshold)  # Linear scaling
-                # Closer to the goal, linearly scale the sensor range
-                dynamic_sensor_range = max(min_sensor_range, max_sensor_range * (distance_to_goal / close_threshold))
-
+            if robot_status_dict[tag.tag_id] and net_force_magnitude > force_influence_threshold:
+                # When external force is significant, override distance-based calculations
+                adjusted_speed = net_force_magnitude  # Directly use force magnitude to set speed
+                adjusted_kp = 0.5 * kp  # Optionally adjust kp to make the robot more responsive to direction changes
             else:
-                # Very close to the goal, prepare to stop
-                adjusted_speed = 0
-                adjusted_kp = 0
-                # Very close to the goal, use the minimum sensor range
-                dynamic_sensor_range = min_sensor_range
+                # Adjust speed and Kp based on distance to goal
+                if distance_to_goal > close_threshold:
+                    # Far from the goal, use normal behavior, max sensor range
+                    adjusted_speed = base_speed
+                    adjusted_kp = kp
+                    dynamic_sensor_range = max_sensor_range
+                elif distance_to_goal > stop_threshold:
+                    # Close to the goal, reduce speed and Kp
+                    adjusted_speed = max(min_speed, base_speed * (distance_to_goal / close_threshold))  # Linear scaling
+                    adjusted_kp = kp * (distance_to_goal / close_threshold)  # Linear scaling
+                    dynamic_sensor_range = max(min_sensor_range, max_sensor_range * (distance_to_goal / close_threshold))
+                else:
+                    # Very close to the goal, prepare to stop or move minimally
+                    adjusted_speed = 0
+                    adjusted_kp = 0
+                    dynamic_sensor_range = min_sensor_range
 
             cv2.circle(debug_image, center, int(dynamic_sensor_range/2), (255,255,255), 0) #Draw circle goal location
 
             # Recalculate rotation_adjustment with adjusted_kp
             rotation_adjustment = adjusted_kp * heading_error
+
+            
+            proximity_sensors = elisa.getAllProximity(tag.tag_id)
+
+            threshold_proximity = 25  # Define your threshold value here
 
             # Adjust the left and right wheel speeds based on the adjusted rotation adjustment and speed
             left_speed = adjusted_speed - rotation_adjustment
@@ -169,17 +170,15 @@ while True:
             # Apply the calculated speeds to the robot, ensuring they do not exceed maximum capabilities
             left_speed = max(min(left_speed, max_speed), -max_speed)
             right_speed = max(min(right_speed, max_speed), -max_speed)
-
+                
             elisa.setLeftSpeed(tag.tag_id, int(left_speed))
             elisa.setRightSpeed(tag.tag_id, int(right_speed))
 
             # Stop the robot if it is within a close distance to the goal
             if distance_to_goal <= stop_threshold:
-                elisa.setLeftSpeed(tag.tag_id, 0)
-                elisa.setRightSpeed(tag.tag_id, 0)
                 robot_status_dict[tag.tag_id] = True  # Mark as arrived
 
-
+    # print("-----------")
     # Place the formation switch check after processing all tags
     all_arrived = all(robot_status_dict.values())
     
@@ -190,7 +189,6 @@ while True:
         count+=1
     print("---------------------------")
     
-
     if all_arrived:
         formation_id += 1
         if formation_id < len(formations):
@@ -198,6 +196,7 @@ while True:
             display_locations = current_formation.copy()
             processed_tags.clear()  # Reset processed tags for the new formation
             robot_status_dict = {robot_id: False for robot_id in robotAddr}  # Reset status for the new formation
+            assigned_goals_bool = False
         else:
             print("Completed all formations.")
             quit()
@@ -206,13 +205,13 @@ while True:
     for i in display_locations:
         cv2.circle(debug_image, i, 4, (0,255,255), -1) #Draw circle goal location
     
-    for robot_id in robotAddr:
-        if robot_id not in detected_robot_ids:
-            # This robot was not detected, so set its speed to 0
-            elisa.setLeftSpeed(robot_id, 0)
-            elisa.setRightSpeed(robot_id, 0)
-            if robot_id in robot_dict:
-                del robot_dict[str(robot_id)] # Optional: Remove it from robot_dict if you're tracking goal positions
+    # for robot_id in robotAddr:
+    #     if robot_id not in detected_robot_ids:
+    #         # This robot was not detected, so set its speed to 0
+    #         elisa.setLeftSpeed(robot_id, 0)
+    #         elisa.setRightSpeed(robot_id, 0)
+    #         # if robot_id in robot_dict:
+    #         #     del robot_dict[str(robot_id)] # Optional: Remove it from robot_dict if you're tracking goal positions
 
     cv2.imshow("IMG", debug_image)
             

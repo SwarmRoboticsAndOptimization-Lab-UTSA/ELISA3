@@ -9,15 +9,6 @@ import json
 import cv2
 import math
 
-Interpreter = tf.lite.Interpreter
-load_delegate = tf.lite.experimental.load_delegate
-
-_MARGIN = 5  # pixels
-_ROW_SIZE = 5  # pixels
-_FONT_SIZE = 1
-_FONT_THICKNESS = 1
-_TEXT_COLOR = (0, 0, 255)  # red
-
 def midpoint(point1, point2): #Function to calculate the mid point between two points
     x1, y1 = point1
     x2, y2 = point2
@@ -72,36 +63,6 @@ def calculate_distance_point(p1, p2):
     """Calculate the Euclidean distance between two points."""
     return ((p1[0] - p2[0])**2 + (p1[1] - p2[1])**2)**0.5
 
-def find_and_remove_closest_point(points, target_point):
-    """
-    Finds and removes the closest point to the target_point from a list of points.
-
-    Parameters:
-    - points: A list of (x, y) tuples.
-    - target_point: A tuple containing the (x, y) coordinates of the target point.
-
-    Returns:
-    - A tuple containing two elements:
-        1. The modified list with the closest point removed.
-        2. The closest point as a tuple.
-    """
-    # Calculate Euclidean distance to each point and store it along with the index
-    distances = [(math.sqrt((x - target_point[0]) ** 2 + (y - target_point[1]) ** 2), i)
-                 for i, (x, y) in enumerate(points)]
-    
-    try:
-        # Find the closest point (minimum distance) and its index
-        _, closest_point_index = min(distances, key=lambda x: x[0])
-    except:
-        pass
-    # Extract the closest point
-    try:
-        closest_point = points.pop(closest_point_index)
-    except:
-        pass
-    
-    # Return the modified list and the closest point
-    return points, closest_point
 
 
 def calculate_attractive_force(current_position, goal_position, strength=1.0):
@@ -145,14 +106,15 @@ def calculate_repulsive_force(current_position, obstacle_position, sensor_range,
     else:
         return (0, 0)
 
+
 # Camera and Detector Setup
 def initialize_camera():
     try:
         subprocess.check_call(["v4l2-ctl", "--set-ctrl=auto_exposure=1"])
         commands = [
-            "v4l2-ctl --device=/dev/video0 --set-ctrl=exposure_time_absolute=129",
-            "v4l2-ctl --device=/dev/video0 --set-ctrl=contrast=0",
-            "v4l2-ctl --device=/dev/video0 --set-ctrl=brightness=40",
+            "v4l2-ctl --device=/dev/video0 --set-ctrl=exposure_time_absolute=155",
+            "v4l2-ctl --device=/dev/video0 --set-ctrl=contrast=76",
+            "v4l2-ctl --device=/dev/video0 --set-ctrl=brightness=0",
             "v4l2-ctl --device=/dev/video0 --set-ctrl=zoom_absolute=100",
             "v4l2-ctl --device=/dev/video0 --set-ctrl=focus_automatic_continuous=0",
             "v4l2-ctl --device=/dev/video0 --set-ctrl=focus_absolute=0",
@@ -162,65 +124,80 @@ def initialize_camera():
     except subprocess.CalledProcessError:
         print("Error executing camera setup commands.")
 
+def extract_tag_info(tag, debug_image):
+    tag_identifier = (tag.tag_family, tag.tag_id)  # Unique identifier for each tag
+    #tag_family = tag.tag_family
+    #tag_id = tag.tag_id
+    center = tag.center
+    corners = tag.corners
+    center = (int(center[0]), int(center[1]))
+    corner_01 = (int(corners[0][0]), int(corners[0][1]))
+    corner_02 = (int(corners[1][0]), int(corners[1][1]))
+    # corner_03 = (int(corners[2][0]), int(corners[2][1]))
+    # corner_04 = (int(corners[3][0]), int(corners[3][1]))
+    mid = midpoint(corner_01,corner_02)
+    cv2.line(debug_image, (center[0], center[1]),(mid[0], mid[1]), (255, 255, 0), 2)
 
-def distribute_points(paths, num_points):
-    """
-    Distribute points evenly along a series of lines defined by start and end points.
-    :param paths: List of tuples, where each tuple contains start and end points (x, y) of a line.
-    :param num_points: Total number of points to distribute.
-    :return: List of point coordinates (x, y) where points should be placed.
-    """
-    # Calculate the total length of the paths
-    total_length = sum(calculate_distance_point(start, end) for start, end in paths)
+    return tag_identifier, center, corners, mid,debug_image
+
+
+def assign_unique_goals(tags,current_formation):
+    distances = [] 
+
+    for tag in tags:
+        center = tag.center
+        corners = tag.corners
+        center = (int(center[0]), int(center[1]))
+        corner_01 = (int(corners[0][0]), int(corners[0][1]))
+        corner_02 = (int(corners[1][0]), int(corners[1][1]))
+        mid = midpoint(corner_01,corner_02)
+        # print(tag.tag_id, mid)
+        for goal in current_formation:
+            distance_to_goal = calculate_distance(mid[0], mid[1], goal[0], goal[1])
+            distances.append((distance_to_goal, tag.tag_id, goal))
     
-    # Calculate distance between points
-    distance_between_points = total_length / (num_points - 1)
+    distances.sort()
+    assigned_goals = set()
+    robot_goal_pairs = {}
+
+   # Assign goals to robots, ensuring no goal is assigned twice
+    for distance, robot_id, goal in distances:
+        if goal not in assigned_goals and robot_id not in robot_goal_pairs:
+            assigned_goals.add(goal)
+            robot_goal_pairs[robot_id] = goal
+
+    return robot_goal_pairs
+
+
+
+def create_lattice(n, width, height, margin):
+    # Determine the number of rows and columns for the lattice
+    cols = int(math.sqrt(n))
+    rows = cols if cols * cols == n else cols + 1
     
+    # Adjust columns if necessary to fit all points
+    while rows * cols < n:
+        cols += 1
+    
+    # Calculate the spacing between points to fit within the frame minus margins
+    x_spacing = (width - 2 * margin) / (cols - 1) if cols > 1 else 0
+    y_spacing = (height - 2 * margin) / (rows - 1) if rows > 1 else 0
+
+    # Generate the points centered within the margins
     points = []
-    accumulated_distance = 0
+    for i in range(rows):
+        for j in range(cols):
+            if len(points) < n:
+                x = margin + j * x_spacing
+                y = margin + i * y_spacing
+                points.append((int(x), int(y)))
     
-    for start, end in paths:
-        if not points:
-            # Add the first point
-            points.append(start)
-        last_point = points[-1]
-
-        # Calculate the length of the current line
-        line_length = calculate_distance_point(start, end)
-        while accumulated_distance + distance_between_points <= line_length:
-            # Find the next point along the line
-            ratio = (accumulated_distance + distance_between_points) / line_length
-            next_point = (int(round(start[0] + ratio * (end[0] - start[0]))), int(round(start[1] + ratio * (end[1] - start[1]))))
-            points.append(next_point)
-            # Update the accumulated distance
-            accumulated_distance += distance_between_points
-
-        # Update the accumulated distance for the next line
-        accumulated_distance -= line_length
-
-    # Ensure the last point is always added
-    if len(points) < num_points:
-        points.append(paths[-1][1])
-
     return points
 
-# Define the paths for the letter U
-paths_u = [((80, 40), (80, 430)), ((80, 430), (570, 430)), ((570, 430), (570, 40))]
-paths_t = [((80, 40), (570, 40)), ((325, 40), (325, 430))]
-paths_s = [((80, 40), (570, 40)), ((80, 40), (80, 255)), ((80, 255), (570, 255)), ((570, 255),(570,430)), ((570,430),(80,430))]
-paths_a = [((80, 40), (570, 40)), ((80, 40), (80, 430)), ((80, 300), (570, 300)), ((570, 40),(570, 430))]
-
-# Distribute 10 points
-
-def get_formations_list(num_robots):
-  points_u = distribute_points(paths_u, num_robots)
-  points_t = distribute_points(paths_t, num_robots)
-  points_s = distribute_points(paths_s, num_robots)
-  points_a = distribute_points(paths_a, num_robots)
-  formations_list = [
-    points_u,
-    points_t,
-    points_s,
-    points_a
-  ]
-  return formations_list
+# Example usage:
+# n = 10  # Number of points
+# width = 640  # Width of the frame in pixels
+# height = 480  # Height of the frame in pixels
+# margin = 50  # Margin size in pixels
+# points = create_lattice(n, width, height, margin)
+# print(points)

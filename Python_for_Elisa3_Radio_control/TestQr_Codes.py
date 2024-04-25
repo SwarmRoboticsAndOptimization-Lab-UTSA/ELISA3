@@ -1,7 +1,6 @@
 import cv2
 from pupil_apriltags import Detector
 import subprocess
-from utils_copy import midpoint,get_formations_list
 
 def set_camera_setting(setting, value):
     try:
@@ -51,6 +50,7 @@ cv2.createTrackbar('Zoom', 'Frame', 100, 500, on_trackbar_change_zoom)  # Adjust
 cv2.createTrackbar('Auto Focus', 'Frame', 0, 250, toggle_auto_focus)
 
 cap = cv2.VideoCapture(0)
+list_of_tags = []
 while True:
     ret, frame = cap.read()
     if not ret:
@@ -63,20 +63,15 @@ while True:
         tag_size=None,
     )    
 
-
-    display_locations = get_formations_list()
-    for i in display_locations[0]:
-        cv2.circle(frame, i, 4, (0,255,255), -1) #Draw circle goal location
-
     for tag in tags:
         center = (int(tag.center[0]), int(tag.center[1]))
         corners = tag.corners
         corner_01 = (int(corners[0][0]), int(corners[0][1]))
         corner_02 = (int(corners[1][0]), int(corners[1][1]))
-        mid = midpoint(corner_01,corner_02)
-        cv2.line(frame, (center[0], center[1]),(mid[0], mid[1]), (255, 255, 0), 2)
         cv2.putText(frame, str(tag.tag_id), center, cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 255), 2)
-
+    #     list_of_tags.append(tag.tag_id)
+    # print(list_of_tags)
+    # break
     # Display the resulting frame
     cv2.imshow('Frame', frame)
     print(frame.shape)
