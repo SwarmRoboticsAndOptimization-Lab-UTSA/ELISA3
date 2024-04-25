@@ -169,7 +169,6 @@ def assign_unique_goals(tags,current_formation):
     return robot_goal_pairs
 
 
-
 def create_lattice(n, width, height, margin):
     # Determine the number of rows and columns for the lattice
     cols = int(math.sqrt(n))
