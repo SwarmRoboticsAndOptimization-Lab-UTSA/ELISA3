@@ -23,16 +23,10 @@ processed_tags = set()  # Set to keep track of processed tags
 
 robot_dict = {}
 detected_robot_ids = set()
-<<<<<<< HEAD:Python_for_Elisa3_Radio_control/UTSA Formation/New_elisa3_Form_Obstacle_Avoidance.py
-robotAddr = [4469,3829,3868,3904,4021,4050,3918,4101,4096,3828,3887,3823,3846,3890,3901]
+# robotAddr = [4469,3829,3868,3904,4021,4050,3918,4101,4096,3828,3887,3823,3846,3890,3901]
 
 # robotAddr = [3868,4050,3828,4060,4083,4021,3904,3829,3918,4469,4101,3988,4096,3948,4104]
-# robotAddr = [3918,3868,3828]
-=======
-# robotAddr = [3868,4050,3828,4060,4083,4021,3904,3829,3918,4469,4101]
-# robotAddr = [3868,4050,3828,4060,4083,4021,3904,3829,3918,4469,4101,3988,4096,3948,4104]
-robotAddr = [3918,3868,3828]
->>>>>>> c79febbd7e1dee4e715cb7c310ed7c6b4c154b07:Python_for_Elisa3_Radio_control/New_elisa3_Form_Obstacle_Avoidance.py
+robotAddr = [3901,4469,4021,3823,4060,3890,4101,3829,3904,3869]
 formation_id = 0
 formations = get_formations_list(len(robotAddr))
 
@@ -52,10 +46,7 @@ kp = 0.1 #Proportional gain for the rotation control
 dead_zone = 5  # Threshold for the heading controller
 close_threshold = 20  #Distance within robot start slowing down and reducing the control gain
 stop_threshold = 8 #Distance within the robot stops moving
-<<<<<<< HEAD:Python_for_Elisa3_Radio_control/UTSA Formation/New_elisa3_Form_Obstacle_Avoidance.py
 assigned_goals_bool = False
-=======
->>>>>>> c79febbd7e1dee4e715cb7c310ed7c6b4c154b07:Python_for_Elisa3_Radio_control/New_elisa3_Form_Obstacle_Avoidance.py
 
 while True:
     ret, frame = cap.read()
@@ -72,7 +63,6 @@ while True:
         tag_size=None,
     )
 
-<<<<<<< HEAD:Python_for_Elisa3_Radio_control/UTSA Formation/New_elisa3_Form_Obstacle_Avoidance.py
     if assigned_goals_bool is True:
         pass
     else:
@@ -82,13 +72,6 @@ while True:
     
     for tag in tags:
         # print(tag.tag_id)
-=======
-    # Assign unique goals to robots
-    assigned_goals = assign_unique_goals(tags, current_formation)
-    print(assigned_goals)
-    
-    for tag in tags:
->>>>>>> c79febbd7e1dee4e715cb7c310ed7c6b4c154b07:Python_for_Elisa3_Radio_control/New_elisa3_Form_Obstacle_Avoidance.py
         tag_identifier, center, corners, mid, debug_image = extract_tag_info(tag,debug_image)
         heading = calculate_heading(center,mid)
         detected_robot_ids.add(tag.tag_id)  # Add the detected robot's ID to the set
@@ -195,10 +178,7 @@ while True:
             if distance_to_goal <= stop_threshold:
                 robot_status_dict[tag.tag_id] = True  # Mark as arrived
 
-<<<<<<< HEAD:Python_for_Elisa3_Radio_control/UTSA Formation/New_elisa3_Form_Obstacle_Avoidance.py
     # print("-----------")
-=======
->>>>>>> c79febbd7e1dee4e715cb7c310ed7c6b4c154b07:Python_for_Elisa3_Radio_control/New_elisa3_Form_Obstacle_Avoidance.py
     # Place the formation switch check after processing all tags
     all_arrived = all(robot_status_dict.values())
     

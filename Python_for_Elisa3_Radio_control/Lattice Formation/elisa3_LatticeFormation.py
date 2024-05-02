@@ -24,7 +24,8 @@ processed_tags = set()  # Set to keep track of processed tags
 robot_dict = {}
 detected_robot_ids = set()
 
-robotAddr = [3823, 3828, 3829, 3846, 3868, 3869, 3874, 3887, 3890, 3901, 3904, 3918, 3948, 3988, 4021, 4050, 4083, 4096, 4101, 4104, 4469]
+#robotAddr = [3823, 3828, 3829, 3846, 3868, 3869, 3874, 3887, 3890, 3901, 3904, 3918, 3948, 3988, 4021, 4050, 4083, 4096, 4101, 4104, 4469]
+robotAddr = [3901,4469,4021,3823,4060,3890,4101,3829,3904,3869]
 
 current_formation = create_lattice(len(robotAddr), 640,480,50)
 display_locations = current_formation.copy()
@@ -38,7 +39,7 @@ min_speed = -5
 dynamic_sensor_range = sensor_range
 min_sensor_range = 50  # Minimum sensor range when close to the goal
 max_sensor_range = sensor_range  # Use the initially defined sensor range as the maximum
-kp = 0.5 #Proportional gain for the rotation control
+kp = 0.1 #Proportional gain for the rotation control
 dead_zone = 5  # Threshold for the heading controller
 close_threshold = 20  #Distance within robot start slowing down and reducing the control gain
 stop_threshold = 8 #Distance within the robot stops moving
