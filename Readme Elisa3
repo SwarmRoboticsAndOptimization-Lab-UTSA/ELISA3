@@ -5,10 +5,12 @@ this is for programming each robot independently
 How to program Elisa.txt has detailed information on how to program the robots.
 
 Python_for_Elisa3_Radio_control
-folder has files that can send signals to the robots using the robot id, this only work on linux for now.
+folder has files that can send control elisas with radio signals from computer with elisa usb
 
 elisa3_remote_library-master
 folder has an implementation of controlling the robots using C code from the computing using the radio signal
+This has not been fully implemented
+
 
 
 
